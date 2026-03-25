@@ -1,0 +1,37 @@
+# Binaries
+/bin/
+/scheduler
+/indexer
+/host
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build output
+dist/
+
+# Go toolchain
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# DefraDB local data
+.scheduler/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Docker volumes
+data/
+logs/
