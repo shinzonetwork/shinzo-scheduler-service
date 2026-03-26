@@ -1,0 +1,23 @@
+services:
+  scheduler:
+    build:
+      context: ..
+      dockerfile: shinzo-scheduler/Dockerfile
+    ports:
+      - "8090:8090"
+    volumes:
+      - scheduler-data:/app/.scheduler
+    environment:
+      # Override sensitive fields — keep config.yaml values as safe defaults.
+      SCHEDULER_HMAC_SECRET: "${SCHEDULER_HMAC_SECRET:-changeme-dev-secret}"
+      DEFRA_KEYRING_SECRET: "${DEFRA_KEYRING_SECRET:-}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  scheduler-data:
