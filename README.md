@@ -1,5 +1,8 @@
 # Shinzo Scheduler
 
+[![CI](https://github.com/shinzonetwork/shinzo-scheduler-service/actions/workflows/ci.yml/badge.svg)](https://github.com/shinzonetwork/shinzo-scheduler-service/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/shinzonetwork/shinzo-scheduler-service/branch/main/graph/badge.svg)](https://codecov.io/gh/shinzonetwork/shinzo-scheduler-service)
+
 Coordination layer between indexers and hosts in the Shinzo ecosystem. The scheduler manages task assignment, lifecycle tracking, and settlement between participants in the network.
 
 ## Quick Start
