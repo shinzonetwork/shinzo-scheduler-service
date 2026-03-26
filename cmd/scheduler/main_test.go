@@ -185,7 +185,7 @@ func TestRun_HealthEndpointResponds(t *testing.T) {
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/v1/health", cfg.Scheduler.Server.Port))
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	cancel()

@@ -42,7 +42,7 @@ func main() {
 	}
 
 	log := buildLogger(cfg.Logger.Development)
-	defer log.Sync()
+	defer func() { _ = log.Sync() }()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

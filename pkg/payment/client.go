@@ -57,7 +57,7 @@ func (c *Client) GetTx(ctx context.Context, txHash string) (*TxResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tx lookup: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("tx lookup: status %d", resp.StatusCode)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,6 +30,7 @@ func (m *mockIndexerLister) ListAllActive(_ context.Context) ([]store.IndexerRec
 }
 
 type mockProbeInserter struct {
+	mu        sync.Mutex
 	inserted  []*store.ProbeResultRecord
 	pruned    []string
 	insertErr error
@@ -36,6 +38,8 @@ type mockProbeInserter struct {
 }
 
 func (m *mockProbeInserter) Insert(_ context.Context, r *store.ProbeResultRecord) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.insertErr != nil {
 		return m.insertErr
 	}
@@ -44,6 +48,8 @@ func (m *mockProbeInserter) Insert(_ context.Context, r *store.ProbeResultRecord
 }
 
 func (m *mockProbeInserter) PruneOldest(_ context.Context, indexerID string, _ int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.pruneErr != nil {
 		return m.pruneErr
 	}
@@ -62,6 +68,7 @@ func (m *signalingReliabilityUpdater) UpdateReliability(_ context.Context, _ str
 }
 
 type mockReliabilityUpdater struct {
+	mu    sync.Mutex
 	calls []reliabilityCall
 }
 
@@ -73,6 +80,8 @@ type reliabilityCall struct {
 }
 
 func (m *mockReliabilityUpdater) UpdateReliability(_ context.Context, docID string, score float64, tip int, status string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.calls = append(m.calls, reliabilityCall{docID, score, tip, status})
 	return nil
 }

@@ -189,7 +189,7 @@ func (p *Prober) fetchHealth(httpUrl string) (tip int, ok bool) {
 	if err != nil {
 		return 0, false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, false

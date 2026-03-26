@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
-	github.com/shinzonetwork/shinzo-app-sdk v0.0.0
+	github.com/shinzonetwork/shinzo-app-sdk v0.0.0-20260325173318-87784b9925c2
 	github.com/sourcenetwork/defradb v0.20.1-0.20260324203720-98437e4f0d60
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
@@ -411,5 +411,3 @@ require (
 	pgregory.net/rapid v1.2.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/shinzonetwork/shinzo-app-sdk => ../shinzo-app-sdk

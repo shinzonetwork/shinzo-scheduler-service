@@ -91,7 +91,7 @@ func (b *TendermintBroadcaster) broadcast(ctx context.Context, msgType string, p
 	if err != nil {
 		return "", fmt.Errorf("broadcast %s: %w", msgType, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

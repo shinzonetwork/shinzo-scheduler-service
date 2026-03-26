@@ -15,7 +15,7 @@ import (
 
 func successHandler(hash string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"result": map[string]any{
 				"code": 0,
 				"hash": hash,
@@ -27,7 +27,7 @@ func successHandler(hash string) http.HandlerFunc {
 
 func failureHandler(code int, log string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"result": map[string]any{
 				"code": code,
 				"hash": "",
@@ -125,7 +125,7 @@ func TestBroadcast_ConnectionError(t *testing.T) {
 
 func TestBroadcast_MalformedResponse(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("not json"))
+		_, _ = w.Write([]byte("not json"))
 	}))
 	defer ts.Close()
 
@@ -140,7 +140,7 @@ func TestBroadcast_RequestPayload(t *testing.T) {
 	var captured []byte
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		captured, _ = io.ReadAll(r.Body)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"result": map[string]any{"code": 0, "hash": "ABCD"},
 		})
 	}))

@@ -93,11 +93,11 @@ func (s *ShinzoHubSubscriber) Start(ctx context.Context) error {
 			"params":  map[string]any{"query": q},
 		}
 		if err := conn.WriteJSON(msg); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return fmt.Errorf("shinzohub subscribe: %w", err)
 		}
 		if _, _, err := conn.ReadMessage(); err != nil {
-			conn.Close()
+			_ = conn.Close()
 			return fmt.Errorf("shinzohub subscribe ack: %w", err)
 		}
 	}
@@ -129,7 +129,7 @@ func (s *ShinzoHubSubscriber) Start(ctx context.Context) error {
 				s.log.Errorw("shinzohub reader goroutine panicked", "recover", r)
 			}
 		}()
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		for {
 			select {
 			case <-ctx.Done():
@@ -250,7 +250,7 @@ func (s *ShinzoHubSubscriber) GetChainHeight(ctx context.Context) (int64, error)
 	if err != nil {
 		return 0, fmt.Errorf("status request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, err

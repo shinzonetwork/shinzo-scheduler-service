@@ -18,9 +18,6 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 
-# Copy the local SDK so the replace directive resolves inside Docker.
-COPY ../shinzo-app-sdk /shinzo-app-sdk
-
 RUN go mod download && go mod verify
 
 COPY . .

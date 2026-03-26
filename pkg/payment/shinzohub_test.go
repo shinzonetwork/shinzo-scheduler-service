@@ -148,7 +148,7 @@ func TestWaitEpochThenActivate(t *testing.T) {
 		} else {
 			height = 106 // at/above target
 		}
-		fmt.Fprintf(w, `{"result":{"sync_info":{"latest_block_height":"%d"}}}`, height)
+		_, _ = fmt.Fprintf(w, `{"result":{"sync_info":{"latest_block_height":"%d"}}}`, height)
 	}))
 	defer srv.Close()
 
@@ -211,7 +211,7 @@ func TestValidateSubscriptionCreated(t *testing.T) {
 func TestGetChainHeight_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/status", r.URL.Path)
-		fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"42"}}}`)
+		_, _ = fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"42"}}}`)
 	}))
 	defer srv.Close()
 	rpcURL := srv.URL[len("http://"):]
@@ -236,7 +236,7 @@ func TestGetChainHeight_Non200(t *testing.T) {
 
 func TestGetChainHeight_InvalidJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, "not-json")
+		_, _ = fmt.Fprint(w, "not-json")
 	}))
 	defer srv.Close()
 	rpcURL := srv.URL[len("http://"):]
@@ -248,7 +248,7 @@ func TestGetChainHeight_InvalidJSON(t *testing.T) {
 
 func TestGetChainHeight_InvalidHeight(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"not-a-number"}}}`)
+		_, _ = fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"not-a-number"}}}`)
 	}))
 	defer srv.Close()
 	rpcURL := srv.URL[len("http://"):]
@@ -261,7 +261,7 @@ func TestGetChainHeight_InvalidHeight(t *testing.T) {
 func TestWaitEpochThenActivate_ContextCancellation(t *testing.T) {
 	// Server always returns a height below the target so the loop never fires the callback.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"1"}}}`)
+		_, _ = fmt.Fprint(w, `{"result":{"sync_info":{"latest_block_height":"1"}}}`)
 	}))
 	defer srv.Close()
 
@@ -364,7 +364,7 @@ type mockWSConn struct {
 	readMsgs    [][]byte // messages returned by ReadMessage in order
 	readIdx     int
 	readErr     error // returned after readMsgs exhausted
-	closeCalled bool
+	closeCalled atomic.Bool
 }
 
 func (m *mockWSConn) WriteJSON(_ any) error { return m.writeErr }
@@ -381,7 +381,7 @@ func (m *mockWSConn) ReadMessage() (int, []byte, error) {
 	time.Sleep(50 * time.Millisecond)
 	return 0, nil, fmt.Errorf("connection closed")
 }
-func (m *mockWSConn) Close() error { m.closeCalled = true; return nil }
+func (m *mockWSConn) Close() error { m.closeCalled.Store(true); return nil }
 
 type mockDialer struct {
 	conn    *mockWSConn
@@ -414,7 +414,7 @@ func TestStart_SubscribeWriteFailure(t *testing.T) {
 	err := s.Start(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "shinzohub subscribe")
-	assert.True(t, conn.closeCalled)
+	assert.True(t, conn.closeCalled.Load())
 }
 
 func TestStart_SubscribeAckReadFailure(t *testing.T) {
@@ -427,7 +427,7 @@ func TestStart_SubscribeAckReadFailure(t *testing.T) {
 	err := s.Start(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "shinzohub subscribe ack")
-	assert.True(t, conn.closeCalled)
+	assert.True(t, conn.closeCalled.Load())
 }
 
 func TestStart_Success_DispatchesEvent(t *testing.T) {
@@ -483,7 +483,7 @@ func TestStart_ReaderExitsOnReadError(t *testing.T) {
 	require.NoError(t, err)
 	// Give goroutines time to exit.
 	time.Sleep(100 * time.Millisecond)
-	assert.True(t, conn.closeCalled)
+	assert.True(t, conn.closeCalled.Load())
 }
 
 func TestStart_ContextCancellationStopsGoroutines(t *testing.T) {
@@ -514,7 +514,7 @@ func TestStart_SecondSubscribeWriteFailure(t *testing.T) {
 	}
 	// Override WriteJSON to fail on second call.
 	origConn := conn
-	var writeErrAfterN int = 1
+	writeErrAfterN := 1
 	d := &countingDialer{conn: origConn, writeErrAfterN: writeErrAfterN, writeCount: &writeCount}
 
 	log, _ := zap.NewDevelopment()
@@ -545,7 +545,7 @@ type countingWSConn struct {
 func (c *countingWSConn) WriteJSON(v any) error {
 	*c.count++
 	if *c.count > c.errAfterN {
-		c.inner.closeCalled = true
+		c.inner.closeCalled.Store(true)
 		return fmt.Errorf("write failed on call %d", *c.count)
 	}
 	return nil
