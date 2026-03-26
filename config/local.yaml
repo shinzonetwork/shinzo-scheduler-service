@@ -1,0 +1,78 @@
+defradb:
+  url: "localhost:9191"
+  keyring_secret: ""          # override with DEFRA_KEYRING_SECRET
+  # P2P replication settings. Enable for multi-scheduler deployments so that
+  # DefraDB instances replicate state across scheduler nodes. Set bootstrap_peers
+  # to the multiaddrs of existing scheduler peers to join the replication mesh.
+  p2p:
+    enabled: false            # scheduler is local-only, no replication
+    # bootstrap_peers:        # list of /ip4/.../p2p/QmXxx multiaddrs
+    # listen_addr: "/ip4/0.0.0.0/tcp/9172"
+  store:
+    path: "./.scheduler/defradb"
+    block_cache_mb: 64
+    memtable_mb: 64
+    index_cache_mb: 32
+
+scheduler:
+  chain: ""                   # required — e.g. "ethereum"; override with SCHEDULER_CHAIN
+  network: ""                 # required — e.g. "mainnet"; override with SCHEDULER_NETWORK
+
+  server:
+    port: 8090
+    read_timeout_seconds: 30
+    write_timeout_seconds: 30
+
+  probe:
+    interval_seconds: 60
+    timeout_seconds: 5
+    tip_lag_threshold: 10          # blocks behind chain tip before reliability penalty
+    tip_exclusion_threshold: 50    # blocks behind tip before hard exclusion from discovery
+    staleness_window_seconds: 120  # heartbeat age limit for discovery eligibility
+    inactive_after_minutes: 10
+    probe_history_limit: 200       # max ProbeResult docs kept per indexer
+    max_concurrent_probes: 20      # semaphore cap on outbound health-check connections
+    heartbeat_interval_seconds: 30 # advertised to indexers/hosts on registration
+
+  auth:
+    hmac_secret: ""           # override with SCHEDULER_HMAC_SECRET
+
+  shinzohub:
+    enabled: false
+    rpc_url: "rpc.devnet.shinzo.network:26657"
+    epoch_size: 0             # blocks to wait before activating a subscription; 0 = immediate
+
+  pricing:
+    floor_tip_per_1k_blocks: 0.0
+    floor_snapshot_per_range: 0.0
+
+  diversity:
+    enabled: true
+    recency_window_hours: 24       # match history older than this has no diversity penalty
+
+  accounting:
+    enabled: false
+    comparison_interval_seconds: 30
+    attestation_window_seconds: 300
+    under_report_grace_seconds: 600
+
+  settlement:
+    enabled: false
+    drain_interval_seconds: 60
+    low_credit_multiplier: 2.0     # signal low credit when balance < multiplier * drain rate
+    grace_period_seconds: 3600     # time for host to top-up after low credit signal
+    settlement_window_blocks: 100  # batch settlement every N blocks
+    verdict_threshold_m: 1         # M-of-N signatures required for verdict finality
+    verdict_threshold_n: 1
+    scheduler_key_path: ""         # path to scheduler signing key for ShinzoHub txs
+    contradiction_threshold: 3     # unresolved contradictions before triggering a slash
+    contradiction_check_interval_seconds: 300  # how often to check for accumulated contradictions
+
+  bootstrap:
+    indexers: []              # operator-owned indexers seeded on startup
+    # - peer_id: "QmXxx..."
+    #   http_url: "https://indexer1.example.com"
+    #   multiaddr: "/ip4/1.2.3.4/tcp/9000/p2p/QmXxx..."
+
+logger:
+  development: false
