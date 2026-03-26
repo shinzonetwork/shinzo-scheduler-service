@@ -1,0 +1,163 @@
+type Scheduler__Indexer {
+    peerId: String @index(unique: true)
+    defraPk: String @index(unique: true)
+    httpUrl: String
+    multiaddr: String
+    chain: String @index
+    network: String @index
+    currentTip: Int
+    snapshotRanges: String
+    pricing: String
+    reliabilityScore: Float
+    lastHeartbeat: String
+    registeredAt: String
+    status: String @index
+    apiKeyHash: String
+}
+
+type Scheduler__Host {
+    peerId: String @index(unique: true)
+    defraPk: String @index(unique: true)
+    httpUrl: String
+    multiaddr: String
+    chain: String @index
+    network: String @index
+    lastHeartbeat: String
+    registeredAt: String
+    status: String @index
+    apiKeyHash: String
+    budget: String
+}
+
+type Scheduler__Subscription {
+    subscriptionId: String @index(unique: true)
+    hostId: String @index
+    indexerId: String @index
+    subType: String
+    blockFrom: Int
+    blockTo: Int
+    status: String @index
+    paymentRef: String
+    createdAt: String
+    activatedAt: String
+    expiresAt: String
+    metadata: String
+}
+
+type Scheduler__ProbeResult {
+    indexerId: String @index
+    probedAt: String
+    success: Boolean
+    tip: Int
+    latencyMs: Int
+}
+
+type Scheduler__Rating {
+    indexerId: String @index
+    hostId: String
+    score: Float
+    comment: String
+    ratedAt: String
+}
+
+type Scheduler__MatchHistory {
+    matchId: String @index(unique: true)
+    hostId: String @index
+    indexerId: String @index
+    matchType: String
+    matchedAt: String
+    clearingPrice: Float
+}
+
+type Scheduler__Contradiction {
+    evidenceId: String @index(unique: true)
+    indexerId: String @index
+    snapshotRange: String
+    probedAt: String
+    resolved: Boolean
+}
+
+type Scheduler__DeliveryClaim {
+    claimId: String @index(unique: true)
+    sessionId: String @index
+    indexerId: String @index
+    blockNumber: Int @index
+    docCids: String
+    blockHash: String
+    batchSignature: String
+    submittedAt: String
+    status: String @index
+}
+
+type Scheduler__Attestation {
+    attestationId: String @index(unique: true)
+    sessionId: String @index
+    hostId: String @index
+    blockNumber: Int @index
+    docCidsReceived: String
+    batchSignature: String
+    submittedAt: String
+    status: String @index
+}
+
+type Scheduler__SessionLedger {
+    ledgerId: String @index(unique: true)
+    sessionId: String @index(unique: true)
+    hostId: String @index
+    indexerId: String @index
+    blocksVerified: Int
+    creditRemaining: Float
+    initialEscrow: Float
+    pricePerBlock: Float
+    lastComparedBlock: Int
+    updatedAt: String
+}
+
+type Scheduler__ComparisonResult {
+    comparisonId: String @index(unique: true)
+    sessionId: String @index
+    blockNumber: Int @index
+    outcome: String
+    claimId: String
+    attestationId: String
+    comparedAt: String
+}
+
+type Scheduler__EscrowAccount {
+    escrowId: String @index(unique: true)
+    sessionId: String @index(unique: true)
+    hostId: String @index
+    indexerId: String @index
+    initialBalance: Float
+    currentBalance: Float
+    pricePerBlock: Float
+    lowWaterThreshold: Float
+    lowCreditSignaled: Boolean
+    gracePeriodEndsAt: String
+    status: String @index
+    createdAt: String
+    updatedAt: String
+}
+
+type Scheduler__Settlement {
+    settlementId: String @index(unique: true)
+    batchId: String @index
+    sessionId: String @index
+    blocksVerified: Int
+    indexerAmount: Float
+    hostRefund: Float
+    closeReason: String
+    txHash: String
+    status: String @index
+    settledAt: String
+}
+
+type Scheduler__Verdict {
+    verdictId: String @index(unique: true)
+    sessionId: String @index
+    outcome: String
+    evidenceCids: String
+    schedulerSignatures: String
+    createdAt: String
+    submittedToHub: Boolean
+}
