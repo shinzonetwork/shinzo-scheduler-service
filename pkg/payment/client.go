@@ -26,7 +26,6 @@ type TxResult struct {
 	Events []TxEvent `json:"events"`
 }
 
-// Client queries the Tendermint REST RPC for transaction details.
 type Client struct {
 	rpcURL     string
 	httpClient *http.Client

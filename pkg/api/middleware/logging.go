@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Logging wraps a handler and emits a structured log line per request.
 func Logging(log *zap.SugaredLogger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

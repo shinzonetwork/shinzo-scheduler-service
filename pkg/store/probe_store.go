@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// ProbeStore manages Scheduler__ProbeResult documents.
 type ProbeStore struct {
 	db dbClient
 }
@@ -15,7 +14,6 @@ func NewProbeStore(db dbClient) *ProbeStore {
 	return &ProbeStore{db: db}
 }
 
-// Insert adds a new probe result.
 func (s *ProbeStore) Insert(ctx context.Context, r *ProbeResultRecord) error {
 	q := fmt.Sprintf(`mutation {
 		create_Scheduler__ProbeResult(input: {
@@ -30,7 +28,6 @@ func (s *ProbeStore) Insert(ctx context.Context, r *ProbeResultRecord) error {
 	return nil
 }
 
-// ListByIndexer returns all probe results for the given indexer ordered by probedAt desc (in-memory sort).
 func (s *ProbeStore) ListByIndexer(ctx context.Context, indexerID string) ([]ProbeResultRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__ProbeResult(filter: {indexerId: {_eq: %q}}) {
@@ -40,7 +37,6 @@ func (s *ProbeStore) ListByIndexer(ctx context.Context, indexerID string) ([]Pro
 	return s.queryMany(ctx, q)
 }
 
-// PruneOldest deletes the oldest probe results for an indexer, keeping at most limit docs.
 // DefraDB has no LIMIT+ORDER in delete, so we query all, sort, and delete the excess.
 func (s *ProbeStore) PruneOldest(ctx context.Context, indexerID string, limit int) error {
 	recs, err := s.ListByIndexer(ctx, indexerID)
@@ -112,7 +108,6 @@ func (s *ProbeStore) queryMany(ctx context.Context, q string) ([]ProbeResultReco
 	return wrapper.SchedulerProbeResult, nil
 }
 
-// sortProbeResultsAsc sorts records by probedAt string (RFC3339 sorts lexicographically).
 func sortProbeResultsAsc(recs []ProbeResultRecord) {
 	for i := 1; i < len(recs); i++ {
 		for j := i; j > 0 && recs[j].ProbedAt < recs[j-1].ProbedAt; j-- {

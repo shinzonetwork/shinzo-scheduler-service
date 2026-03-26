@@ -1,6 +1,5 @@
 package accounting
 
-// SubmitClaimRequest is the input for submitting a delivery claim.
 type SubmitClaimRequest struct {
 	SessionID      string `json:"session_id"`
 	IndexerID      string `json:"indexer_id"`
@@ -10,7 +9,6 @@ type SubmitClaimRequest struct {
 	BatchSignature string `json:"batch_signature"`
 }
 
-// SubmitAttestationRequest is the input for submitting a host attestation.
 type SubmitAttestationRequest struct {
 	SessionID       string `json:"session_id"`
 	HostID          string `json:"host_id"`
@@ -19,7 +17,6 @@ type SubmitAttestationRequest struct {
 	BatchSignature  string `json:"batch_signature"`
 }
 
-// ComparisonResult holds the outcome of comparing a claim against an attestation.
 type ComparisonResult struct {
 	SessionID   string
 	BlockNumber int

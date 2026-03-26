@@ -20,7 +20,6 @@ type verdictQuerier interface {
 	ListBySession(ctx context.Context, sessionID string) ([]store.VerdictRecord, error)
 }
 
-// SettlementHandler serves /v1/escrow/*, /v1/settlements/*, and /v1/verdicts/* routes.
 type SettlementHandler struct {
 	escrowSt     escrowQuerier
 	settlementSt settlementQuerier
@@ -31,7 +30,6 @@ func NewSettlementHandler(escrowSt escrowQuerier, settlementSt settlementQuerier
 	return &SettlementHandler{escrowSt: escrowSt, settlementSt: settlementSt, verdictSt: verdictSt}
 }
 
-// Escrow handles GET /v1/escrow/{session_id}.
 func (h *SettlementHandler) Escrow(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["session_id"]
 	if sessionID == "" {
@@ -50,7 +48,6 @@ func (h *SettlementHandler) Escrow(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, rec)
 }
 
-// Settlements handles GET /v1/settlements/{session_id}.
 func (h *SettlementHandler) Settlements(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["session_id"]
 	if sessionID == "" {
@@ -65,7 +62,6 @@ func (h *SettlementHandler) Settlements(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, recs)
 }
 
-// Verdicts handles GET /v1/verdicts/{session_id}.
 func (h *SettlementHandler) Verdicts(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["session_id"]
 	if sessionID == "" {

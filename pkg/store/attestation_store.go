@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// AttestationStore provides CRUD operations on the Scheduler__Attestation collection.
 type AttestationStore struct {
 	db dbClient
 }
@@ -49,7 +48,6 @@ func (s *AttestationStore) ListBySession(ctx context.Context, sessionID string) 
 	return s.queryMany(ctx, q)
 }
 
-// ListPending returns all attestations in pending status.
 func (s *AttestationStore) ListPending(ctx context.Context) ([]AttestationRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Attestation(filter: {status: {_eq: %q}}) { %s }

@@ -54,7 +54,6 @@ func (defaultDialer) Dial(url string, header http.Header) (wsConn, *http.Respons
 	return websocket.DefaultDialer.Dial(url, header)
 }
 
-// ShinzoHubSubscriber listens for payment events from the ShinzoHub Tendermint node.
 type ShinzoHubSubscriber struct {
 	rpcURL    string
 	epochSize int
@@ -71,7 +70,6 @@ func NewShinzoHubSubscriber(rpcURL string, epochSize int, log *zap.SugaredLogger
 	return &ShinzoHubSubscriber{rpcURL: rpcURL, epochSize: epochSize, log: log, dialer: defaultDialer{}}
 }
 
-// WithDialer replaces the default WebSocket dialer (used for testing).
 func (s *ShinzoHubSubscriber) WithDialer(d wsDialer) {
 	s.dialer = d
 }

@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// SessionCloser handles session termination paths.
 type SessionCloser struct {
 	batch *BatchProcessor
 	hub   HubBroadcaster
@@ -18,7 +17,6 @@ func NewSessionCloser(batch *BatchProcessor, hub HubBroadcaster, log *zap.Sugare
 	return &SessionCloser{batch: batch, hub: hub, log: log}
 }
 
-// CloseSession terminates a session by any path and submits MsgCloseSession.
 func (sc *SessionCloser) CloseSession(ctx context.Context, sessionID, reason string) error {
 	if sessionID == "" {
 		return fmt.Errorf("session_id is required")

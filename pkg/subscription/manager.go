@@ -30,7 +30,6 @@ type indexerQuerier interface {
 	GetByPeerID(ctx context.Context, peerID string) (*store.IndexerRecord, error)
 }
 
-// Manager handles subscription lifecycle: create, activate, expire, cancel.
 type Manager struct {
 	subSt     subStore
 	indexerSt indexerQuerier
@@ -49,12 +48,10 @@ func NewManager(subSt subStore, indexerSt indexerQuerier, log *zap.SugaredLogger
 	}
 }
 
-// WithMatchRecorder attaches a match history store for diversity tracking.
 func (m *Manager) WithMatchRecorder(ms matchRecorder) {
 	m.matchSt = ms
 }
 
-// Create inserts a new subscription in PENDING state and returns it.
 func (m *Manager) Create(ctx context.Context, req CreateRequest) (*store.SubscriptionRecord, error) {
 	if err := validateCreate(req); err != nil {
 		return nil, err
@@ -108,12 +105,10 @@ func (m *Manager) Create(ctx context.Context, req CreateRequest) (*store.Subscri
 	return created, nil
 }
 
-// ListByHost returns all subscriptions for a given host peer ID.
 func (m *Manager) ListByHost(ctx context.Context, hostID string) ([]store.SubscriptionRecord, error) {
 	return m.subSt.ListByHost(ctx, hostID)
 }
 
-// Activate transitions a PENDING subscription to ACTIVE after payment is confirmed.
 func (m *Manager) Activate(ctx context.Context, req ActivateRequest) error {
 	sub, err := m.subSt.GetByID(ctx, req.SubscriptionID)
 	if err != nil {
@@ -142,7 +137,6 @@ func (m *Manager) Activate(ctx context.Context, req ActivateRequest) error {
 	return nil
 }
 
-// Cancel transitions a subscription to CANCELLED.
 func (m *Manager) Cancel(ctx context.Context, subID string) error {
 	sub, err := m.subSt.GetByID(ctx, subID)
 	if err != nil {
@@ -161,7 +155,6 @@ func (m *Manager) Cancel(ctx context.Context, subID string) error {
 	return nil
 }
 
-// Get returns the subscription record, including the indexer multiaddr if status=active.
 func (m *Manager) Get(ctx context.Context, subID string) (*store.SubscriptionRecord, *store.IndexerRecord, error) {
 	sub, err := m.subSt.GetByID(ctx, subID)
 	if err != nil {
@@ -181,7 +174,6 @@ func (m *Manager) Get(ctx context.Context, subID string) (*store.SubscriptionRec
 	return sub, indexer, nil
 }
 
-// StartExpiryLoop checks for expired subscriptions every minute.
 func (m *Manager) StartExpiryLoop(ctx context.Context) {
 	m.wg.Add(1)
 	go func() {
@@ -201,7 +193,6 @@ func (m *Manager) StartExpiryLoop(ctx context.Context) {
 	}()
 }
 
-// Stop halts the expiry loop.
 func (m *Manager) Stop() {
 	close(m.stopCh)
 	m.wg.Wait()

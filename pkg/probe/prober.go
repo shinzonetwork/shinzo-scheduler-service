@@ -38,7 +38,6 @@ type healthResponse struct {
 	Status       string `json:"status"`
 }
 
-// Prober periodically probes all active indexers and updates their reliability scores.
 type Prober struct {
 	cfg             config.ProbeConfig
 	indexerReg      reliabilityUpdater
@@ -80,7 +79,6 @@ func (p *Prober) WithContradictionRecorder(cr contradictionRecorder) {
 	p.contradictionSt = cr
 }
 
-// Start begins the probe loop in the background.
 func (p *Prober) Start(ctx context.Context) {
 	p.wg.Add(1)
 	go func() {
@@ -102,7 +100,6 @@ func (p *Prober) Start(ctx context.Context) {
 	p.log.Infof("prober started (interval=%ds)", p.cfg.IntervalSeconds)
 }
 
-// Stop signals the prober to halt and waits for the goroutine to exit.
 func (p *Prober) Stop() {
 	close(p.stopCh)
 	p.wg.Wait()

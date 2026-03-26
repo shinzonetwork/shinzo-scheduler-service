@@ -8,8 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config is the full scheduler configuration. DefraDB and logger settings
-// come from the SDK's config struct so the same YAML keys work everywhere.
 type Config struct {
 	sdkconfig.Config `yaml:",inline"`
 	Scheduler        SchedulerConfig `yaml:"scheduler"`
@@ -91,7 +89,6 @@ type SettlementConfig struct {
 	ContradictionCheckIntervalSeconds int    `yaml:"contradiction_check_interval_seconds"`
 }
 
-// BootstrapConfig lists operator-owned indexers to seed on startup.
 type BootstrapConfig struct {
 	Indexers []BootstrapIndexer `yaml:"indexers"`
 }

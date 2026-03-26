@@ -12,7 +12,6 @@ type probeRater interface {
 	RecentSuccessRate(ctx context.Context, limit int) (float64, error)
 }
 
-// MetricsHandler serves GET /v1/metrics.
 type MetricsHandler struct {
 	indexerSt nodeCounter
 	hostSt    nodeCounter
@@ -31,7 +30,6 @@ func NewMetricsHandler(
 	return &MetricsHandler{indexerSt: indexerSt, hostSt: hostSt, subSt: subSt, probeSt: probeSt, log: log}
 }
 
-// metricsResponse is the shape of GET /v1/metrics.
 type metricsResponse struct {
 	ActiveIndexers   int     `json:"active_indexers"`
 	InactiveIndexers int     `json:"inactive_indexers"`
@@ -42,7 +40,6 @@ type metricsResponse struct {
 	ProbeSuccessRate float64 `json:"probe_success_rate"`
 }
 
-// Metrics handles GET /v1/metrics.
 func (h *MetricsHandler) Metrics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

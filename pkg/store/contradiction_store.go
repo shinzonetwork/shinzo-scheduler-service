@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// ContradictionStore provides CRUD operations on the Scheduler__Contradiction collection.
 type ContradictionStore struct {
 	db dbClient
 }
@@ -30,7 +29,6 @@ func (s *ContradictionStore) Create(ctx context.Context, r *ContradictionRecord)
 	return s.mutateOne(ctx, "create_Scheduler__Contradiction", q)
 }
 
-// ListByIndexer returns all contradiction records for a given indexer.
 func (s *ContradictionStore) ListByIndexer(ctx context.Context, indexerID string) ([]ContradictionRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Contradiction(filter: {indexerId: {_eq: %q}}) {
@@ -40,7 +38,6 @@ func (s *ContradictionStore) ListByIndexer(ctx context.Context, indexerID string
 	return s.queryMany(ctx, q)
 }
 
-// ListUnresolved returns all unresolved contradiction records.
 func (s *ContradictionStore) ListUnresolved(ctx context.Context) ([]ContradictionRecord, error) {
 	q := `query {
 		Scheduler__Contradiction(filter: {resolved: {_eq: false}}) {
@@ -50,7 +47,6 @@ func (s *ContradictionStore) ListUnresolved(ctx context.Context) ([]Contradictio
 	return s.queryMany(ctx, q)
 }
 
-// MarkResolved sets the resolved flag to true for a contradiction record.
 func (s *ContradictionStore) MarkResolved(ctx context.Context, docID string) error {
 	return s.Update(ctx, docID, map[string]any{"resolved": true})
 }

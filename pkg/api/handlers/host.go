@@ -22,7 +22,6 @@ type hostGetter interface {
 	GetByPeerID(ctx context.Context, peerID string) (*store.HostRecord, error)
 }
 
-// HostHandler serves /v1/hosts routes.
 type HostHandler struct {
 	reg    hostRegistry
 	hostSt hostGetter

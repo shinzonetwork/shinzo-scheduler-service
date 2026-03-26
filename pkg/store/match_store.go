@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// MatchStore provides CRUD operations on the Scheduler__MatchHistory collection.
 type MatchStore struct {
 	db dbClient
 }
@@ -30,7 +29,6 @@ func (s *MatchStore) Create(ctx context.Context, r *MatchHistoryRecord) (*MatchH
 	return s.mutateOne(ctx, "create_Scheduler__MatchHistory", q)
 }
 
-// ListByHost returns all match history entries for a host, ordered by most recent first.
 func (s *MatchStore) ListByHost(ctx context.Context, hostID string) ([]MatchHistoryRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__MatchHistory(filter: {hostId: {_eq: %q}}) {
@@ -40,7 +38,6 @@ func (s *MatchStore) ListByHost(ctx context.Context, hostID string) ([]MatchHist
 	return s.queryMany(ctx, q)
 }
 
-// ListByHostAndIndexer returns match history between a specific host and indexer.
 func (s *MatchStore) ListByHostAndIndexer(ctx context.Context, hostID, indexerID string) ([]MatchHistoryRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__MatchHistory(filter: {hostId: {_eq: %q}, indexerId: {_eq: %q}}) {

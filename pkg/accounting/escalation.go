@@ -12,7 +12,6 @@ type SlashBroadcaster interface {
 	BroadcastSlash(ctx context.Context, indexerID, evidenceCID, reason string) error
 }
 
-// HubEscalator implements EscalationHandler by broadcasting slash messages to ShinzoHub.
 type HubEscalator struct {
 	broadcaster SlashBroadcaster
 	log         *zap.SugaredLogger
@@ -22,7 +21,6 @@ func NewHubEscalator(broadcaster SlashBroadcaster, log *zap.SugaredLogger) *HubE
 	return &HubEscalator{broadcaster: broadcaster, log: log}
 }
 
-// OnMismatch escalates a CID divergence by submitting evidence to ShinzoHub.
 func (h *HubEscalator) OnMismatch(ctx context.Context, sessionID string, claimID, attestID string) error {
 	evidenceCID := fmt.Sprintf("claim:%s,attestation:%s", claimID, attestID)
 	reason := fmt.Sprintf("cid_mismatch in session %s", sessionID)
@@ -33,7 +31,6 @@ func (h *HubEscalator) OnMismatch(ctx context.Context, sessionID string, claimID
 	return h.broadcaster.BroadcastSlash(ctx, sessionID, evidenceCID, reason)
 }
 
-// OnUnderReportExpired escalates an unresolved under-report after the grace window.
 func (h *HubEscalator) OnUnderReportExpired(ctx context.Context, sessionID string, claimID, attestID string) error {
 	evidenceCID := fmt.Sprintf("claim:%s,attestation:%s", claimID, attestID)
 	reason := fmt.Sprintf("under_report_unresolved in session %s", sessionID)

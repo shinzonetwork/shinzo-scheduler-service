@@ -19,7 +19,6 @@ type subStatusLister interface {
 	ListByStatus(ctx context.Context, status string) ([]store.SubscriptionRecord, error)
 }
 
-// HealthHandler serves GET /v1/health and GET /v1/stats.
 type HealthHandler struct {
 	indexerSt nodeCounter
 	hostSt    nodeCounter

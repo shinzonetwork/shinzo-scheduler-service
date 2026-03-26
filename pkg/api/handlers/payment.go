@@ -27,7 +27,6 @@ type TxVerifier interface {
 	VerifySubscriptionPayment(ctx context.Context, txHash, subscriptionID string) error
 }
 
-// PaymentHandler serves /v1/quotes and /v1/payments/verify.
 type PaymentHandler struct {
 	mgr                   subscriptionActivator
 	indexerSt             indexerLookup

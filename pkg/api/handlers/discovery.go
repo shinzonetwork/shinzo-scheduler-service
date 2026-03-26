@@ -14,7 +14,6 @@ type discoverer interface {
 	FindForSnapshot(ctx context.Context, q discovery.SnapshotQuery) ([]discovery.IndexerMatch, error)
 }
 
-// DiscoveryHandler serves /v1/discover/* routes.
 type DiscoveryHandler struct {
 	disc discoverer
 }

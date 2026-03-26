@@ -1,6 +1,5 @@
 package payment
 
-// Quote is a pricing estimate returned by GET /v1/quotes.
 type Quote struct {
 	IndexerID   string  `json:"indexer_id"`
 	SubType     string  `json:"sub_type"`
@@ -11,7 +10,6 @@ type Quote struct {
 	ValidUntil  string  `json:"valid_until"` // RFC3339
 }
 
-// VerifyPaymentRequest is the body for POST /v1/payments/verify.
 // In Phase 1 this is trust-based (operator signs off-chain).
 // Phase 3 will verify a ShinzoHub transaction hash.
 type VerifyPaymentRequest struct {

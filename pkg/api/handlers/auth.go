@@ -25,7 +25,6 @@ type hostKeyStore interface {
 	UpdateAPIKeyHash(ctx context.Context, docID, hash string) error
 }
 
-// AuthHandler serves POST /v1/auth/rotate-key.
 type AuthHandler struct {
 	verifier  keyRotator
 	indexerSt indexerKeyStore
@@ -37,8 +36,6 @@ func NewAuthHandler(v *auth.Verifier, indexerSt *store.IndexerStore, hostSt *sto
 	return &AuthHandler{verifier: v, indexerSt: indexerSt, hostSt: hostSt, log: log}
 }
 
-// RotateKey issues a new API key for the authenticated caller, invalidating the old one.
-// POST /v1/auth/rotate-key — requires a valid Bearer token.
 func (h *AuthHandler) RotateKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	apiKey := middleware.APIKeyFromContext(ctx)

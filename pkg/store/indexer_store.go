@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// IndexerStore provides CRUD operations on the Scheduler__Indexer collection.
 type IndexerStore struct {
 	db dbClient
 }
@@ -15,7 +14,6 @@ func NewIndexerStore(db dbClient) *IndexerStore {
 	return &IndexerStore{db: db}
 }
 
-// GetByPeerID returns the indexer record for the given peer ID, or nil if not found.
 func (s *IndexerStore) GetByPeerID(ctx context.Context, peerID string) (*IndexerRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Indexer(filter: {peerId: {_eq: %q}}) {
@@ -27,7 +25,6 @@ func (s *IndexerStore) GetByPeerID(ctx context.Context, peerID string) (*Indexer
 	return s.querySingle(ctx, q)
 }
 
-// GetByDefraPK returns the indexer record with the given secp256k1 public key.
 func (s *IndexerStore) GetByDefraPK(ctx context.Context, defraPK string) (*IndexerRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Indexer(filter: {defraPk: {_eq: %q}}) {
@@ -39,7 +36,6 @@ func (s *IndexerStore) GetByDefraPK(ctx context.Context, defraPK string) (*Index
 	return s.querySingle(ctx, q)
 }
 
-// ListActive returns all indexers with status=active for the given chain+network.
 func (s *IndexerStore) ListActive(ctx context.Context, chain, network string) ([]IndexerRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Indexer(filter: {
@@ -55,7 +51,6 @@ func (s *IndexerStore) ListActive(ctx context.Context, chain, network string) ([
 	return s.queryMany(ctx, q)
 }
 
-// ListAllActive returns all indexers with status=active across all chains.
 func (s *IndexerStore) ListAllActive(ctx context.Context) ([]IndexerRecord, error) {
 	q := `query {
 		Scheduler__Indexer(filter: {status: {_eq: "active"}}) {
@@ -67,7 +62,6 @@ func (s *IndexerStore) ListAllActive(ctx context.Context) ([]IndexerRecord, erro
 	return s.queryMany(ctx, q)
 }
 
-// Create inserts a new indexer document. Returns the created record with _docID populated.
 func (s *IndexerStore) Create(ctx context.Context, r *IndexerRecord) (*IndexerRecord, error) {
 	q := fmt.Sprintf(`mutation {
 		create_Scheduler__Indexer(input: {
@@ -91,7 +85,6 @@ func (s *IndexerStore) Create(ctx context.Context, r *IndexerRecord) (*IndexerRe
 	return s.mutateOne(ctx, "create_Scheduler__Indexer", q)
 }
 
-// Update applies partial updates to an existing indexer document by _docID.
 func (s *IndexerStore) Update(ctx context.Context, docID string, fields map[string]any) error {
 	input := buildInputLiteral(fields)
 	q := fmt.Sprintf(`mutation {
@@ -104,7 +97,6 @@ func (s *IndexerStore) Update(ctx context.Context, docID string, fields map[stri
 	return nil
 }
 
-// Delete removes an indexer document by _docID.
 func (s *IndexerStore) Delete(ctx context.Context, docID string) error {
 	q := fmt.Sprintf(`mutation { delete_Scheduler__Indexer(docID: %q) { _docID } }`, docID)
 	res := s.db.ExecRequest(ctx, q)
@@ -114,12 +106,10 @@ func (s *IndexerStore) Delete(ctx context.Context, docID string) error {
 	return nil
 }
 
-// UpdateAPIKeyHash replaces the stored API key hash for an indexer.
 func (s *IndexerStore) UpdateAPIKeyHash(ctx context.Context, docID, hash string) error {
 	return s.Update(ctx, docID, map[string]any{"apiKeyHash": hash})
 }
 
-// Count returns the number of indexers matching status.
 func (s *IndexerStore) Count(ctx context.Context, status string) (int, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Indexer(filter: {status: {_eq: %q}}) { _docID }

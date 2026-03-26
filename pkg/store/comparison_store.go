@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// ComparisonStore provides CRUD operations on the Scheduler__ComparisonResult collection.
 type ComparisonStore struct {
 	db dbClient
 }

@@ -18,7 +18,6 @@ type verdictStore interface {
 	Update(ctx context.Context, docID string, fields map[string]any) error
 }
 
-// VerdictManager creates and signs verdict documents.
 type VerdictManager struct {
 	verdictSt verdictStore
 	hub       HubBroadcaster
@@ -40,7 +39,6 @@ func NewVerdictManager(
 	}
 }
 
-// CreateVerdict writes a verdict document to DefraDB before on-chain submission.
 func (vm *VerdictManager) CreateVerdict(ctx context.Context, sessionID, outcome string, evidenceCids []string) (*store.VerdictRecord, error) {
 	evidenceJSON, err := json.Marshal(evidenceCids)
 	if err != nil {
@@ -73,7 +71,6 @@ func (vm *VerdictManager) CreateVerdict(ctx context.Context, sessionID, outcome 
 	return created, nil
 }
 
-// AddSignature adds a co-signer's signature to a verdict.
 func (vm *VerdictManager) AddSignature(ctx context.Context, sessionID, signature string) error {
 	verdict, err := vm.verdictSt.GetBySession(ctx, sessionID)
 	if err != nil {
@@ -98,7 +95,6 @@ func (vm *VerdictManager) AddSignature(ctx context.Context, sessionID, signature
 	})
 }
 
-// HasQuorum returns true if the verdict has >= M signatures.
 func (vm *VerdictManager) HasQuorum(ctx context.Context, sessionID string) (bool, error) {
 	verdict, err := vm.verdictSt.GetBySession(ctx, sessionID)
 	if err != nil {
@@ -116,7 +112,6 @@ func (vm *VerdictManager) HasQuorum(ctx context.Context, sessionID string) (bool
 	return len(sigs) >= vm.cfg.VerdictThresholdM, nil
 }
 
-// SubmitToHub broadcasts the verdict to ShinzoHub if quorum is met.
 func (vm *VerdictManager) SubmitToHub(ctx context.Context, sessionID string) error {
 	hasQuorum, err := vm.HasQuorum(ctx, sessionID)
 	if err != nil {

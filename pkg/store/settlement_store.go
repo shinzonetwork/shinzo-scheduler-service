@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// SettlementStore provides CRUD operations on the Scheduler__Settlement collection.
 type SettlementStore struct {
 	db dbClient
 }

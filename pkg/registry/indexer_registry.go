@@ -48,7 +48,6 @@ type indexerStorer interface {
 	Update(ctx context.Context, docID string, fields map[string]any) error
 }
 
-// IndexerRegistry manages indexer lifecycle.
 type IndexerRegistry struct {
 	store                    indexerStorer
 	verifier                 *auth.Verifier
@@ -62,8 +61,6 @@ func NewIndexerRegistry(s indexerStorer, v *auth.Verifier, log *zap.SugaredLogge
 	return &IndexerRegistry{store: s, verifier: v, log: log, chain: chain, network: network, heartbeatIntervalSeconds: heartbeatInterval}
 }
 
-// Register validates the signed payload, creates or refreshes the indexer record,
-// and returns a newly-issued API key.
 func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerRequest) (*RegisterIndexerResponse, error) {
 	if err := r.verifyRegistration(req); err != nil {
 		return nil, fmt.Errorf("registration rejected: %w", err)
@@ -119,7 +116,6 @@ func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerReque
 	return &RegisterIndexerResponse{PeerID: req.PeerID, APIKey: plainKey, HeartbeatIntervalSeconds: r.heartbeatIntervalSeconds}, nil
 }
 
-// Heartbeat updates the indexer's current tip and snapshot list.
 func (r *IndexerRegistry) Heartbeat(ctx context.Context, peerID string, req HeartbeatRequest) error {
 	rec, err := r.store.GetByPeerID(ctx, peerID)
 	if err != nil {
@@ -137,7 +133,6 @@ func (r *IndexerRegistry) Heartbeat(ctx context.Context, peerID string, req Hear
 	})
 }
 
-// Deregister marks the indexer as inactive.
 func (r *IndexerRegistry) Deregister(ctx context.Context, peerID string) error {
 	rec, err := r.store.GetByPeerID(ctx, peerID)
 	if err != nil {
@@ -153,7 +148,6 @@ func (r *IndexerRegistry) Deregister(ctx context.Context, peerID string) error {
 	return nil
 }
 
-// VerifyAPIKey checks the provided key against the stored hash for the given peer ID.
 func (r *IndexerRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*store.IndexerRecord, error) {
 	peerID, err := auth.ExtractPeerID(apiKey)
 	if err != nil {
@@ -172,7 +166,6 @@ func (r *IndexerRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*sto
 	return rec, nil
 }
 
-// UpdateReliability persists the new reliability score computed by the prober.
 func (r *IndexerRegistry) UpdateReliability(ctx context.Context, docID string, score float64, tip int, status string) error {
 	fields := map[string]any{
 		"reliabilityScore": score,

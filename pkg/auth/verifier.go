@@ -79,7 +79,6 @@ func (v *Verifier) VerifyAPIKey(plaintext, storedHash string) error {
 	return nil
 }
 
-// ExtractPeerID parses a key issued by IssueAPIKey and returns the embedded peer ID.
 func ExtractPeerID(apiKey string) (string, error) {
 	parts := strings.SplitN(apiKey, ".", 3)
 	if len(parts) != 3 {

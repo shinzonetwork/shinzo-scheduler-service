@@ -22,7 +22,6 @@ type indexerGetter interface {
 	GetByPeerID(ctx context.Context, peerID string) (*store.IndexerRecord, error)
 }
 
-// IndexerHandler serves /v1/indexers routes.
 type IndexerHandler struct {
 	reg       indexerRegistry
 	indexerSt indexerGetter

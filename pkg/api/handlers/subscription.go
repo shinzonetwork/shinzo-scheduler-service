@@ -23,7 +23,6 @@ type hostVerifier interface {
 	VerifyAPIKey(ctx context.Context, apiKey string) (*store.HostRecord, error)
 }
 
-// SubscriptionHandler serves /v1/subscriptions routes.
 type SubscriptionHandler struct {
 	mgr     subscriptionManager
 	hostReg hostVerifier
@@ -33,7 +32,6 @@ func NewSubscriptionHandler(mgr *subpkg.Manager, hostReg *registry.HostRegistry)
 	return &SubscriptionHandler{mgr: mgr, hostReg: hostReg}
 }
 
-// Create handles POST /v1/subscriptions.
 func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	host, err := h.authHost(r)
 	if err != nil {
@@ -57,7 +55,6 @@ func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, sub)
 }
 
-// Get handles GET /v1/subscriptions/{id}.
 func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	subID := mux.Vars(r)["id"]
 
@@ -85,7 +82,6 @@ func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// List handles GET /v1/subscriptions?host_id=...
 func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
 	host, err := h.authHost(r)
 	if err != nil {
@@ -108,7 +104,6 @@ func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, subs)
 }
 
-// Cancel handles DELETE /v1/subscriptions/{id}.
 func (h *SubscriptionHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	subID := mux.Vars(r)["id"]
 

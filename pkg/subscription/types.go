@@ -1,6 +1,5 @@
 package subscription
 
-// CreateRequest is the body for POST /v1/subscriptions.
 type CreateRequest struct {
 	HostID    string `json:"host_id"`
 	IndexerID string `json:"indexer_id"`
@@ -10,7 +9,6 @@ type CreateRequest struct {
 	Metadata  string `json:"metadata"`   // optional JSON
 }
 
-// ActivateRequest is used by POST /v1/payments/verify to activate a pending subscription.
 type ActivateRequest struct {
 	SubscriptionID string `json:"subscription_id"`
 	PaymentRef     string `json:"payment_ref"`

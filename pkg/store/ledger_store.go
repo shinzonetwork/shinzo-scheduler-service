@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// LedgerStore provides CRUD operations on the Scheduler__SessionLedger collection.
 type LedgerStore struct {
 	db dbClient
 }
@@ -59,7 +58,6 @@ func (s *LedgerStore) Update(ctx context.Context, docID string, fields map[strin
 	return nil
 }
 
-// ListAll returns all session ledger records.
 func (s *LedgerStore) ListAll(ctx context.Context) ([]SessionLedgerRecord, error) {
 	q := fmt.Sprintf(`query { Scheduler__SessionLedger { %s } }`, ledgerFields)
 	return s.queryMany(ctx, q)

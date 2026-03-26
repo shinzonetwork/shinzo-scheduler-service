@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// SubscriptionStore provides CRUD operations on Scheduler__Subscription.
 type SubscriptionStore struct {
 	db dbClient
 }

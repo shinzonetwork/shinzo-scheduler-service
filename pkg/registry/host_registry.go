@@ -35,7 +35,6 @@ type hostStorer interface {
 	Update(ctx context.Context, docID string, fields map[string]any) error
 }
 
-// HostRegistry manages host lifecycle.
 type HostRegistry struct {
 	store                    hostStorer
 	verifier                 *auth.Verifier

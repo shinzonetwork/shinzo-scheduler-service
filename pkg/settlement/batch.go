@@ -16,7 +16,6 @@ type settlementStore interface {
 	Update(ctx context.Context, docID string, fields map[string]any) error
 }
 
-// BatchProcessor handles batch settlement to ShinzoHub.
 type BatchProcessor struct {
 	settleSt settlementStore
 	escrowSt escrowStore
@@ -41,7 +40,6 @@ func NewBatchProcessor(
 	}
 }
 
-// ProcessBatch settles a list of sessions atomically.
 func (bp *BatchProcessor) ProcessBatch(ctx context.Context, sessionIDs []string, closeReason string) error {
 	if len(sessionIDs) == 0 {
 		return nil

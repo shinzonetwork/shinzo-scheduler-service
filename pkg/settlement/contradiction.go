@@ -18,8 +18,6 @@ type contradictionStore interface {
 	MarkResolved(ctx context.Context, docID string) error
 }
 
-// ContradictionAggregator periodically checks for accumulated unresolved
-// contradictions per indexer and broadcasts MsgSlash when threshold is met.
 type ContradictionAggregator struct {
 	contradictionSt contradictionStore
 	hub             HubBroadcaster
@@ -29,7 +27,6 @@ type ContradictionAggregator struct {
 	wg              sync.WaitGroup
 }
 
-// NewContradictionAggregator creates an aggregator that monitors unresolved contradictions.
 func NewContradictionAggregator(
 	contradictionSt contradictionStore,
 	hub HubBroadcaster,
@@ -45,7 +42,6 @@ func NewContradictionAggregator(
 	}
 }
 
-// Start begins the periodic contradiction check loop.
 func (ca *ContradictionAggregator) Start(ctx context.Context) {
 	ca.wg.Add(1)
 	go func() {
@@ -71,7 +67,6 @@ func (ca *ContradictionAggregator) Start(ctx context.Context) {
 		ca.cfg.ContradictionCheckIntervalSeconds, ca.cfg.ContradictionThreshold)
 }
 
-// Stop halts the background loop and waits for it to exit.
 func (ca *ContradictionAggregator) Stop() {
 	close(ca.stopCh)
 	ca.wg.Wait()

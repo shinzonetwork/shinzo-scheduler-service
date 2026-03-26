@@ -23,8 +23,6 @@ type ledgerReader interface {
 	GetBySession(ctx context.Context, sessionID string) (*store.SessionLedgerRecord, error)
 }
 
-// EscrowManager handles continuous credit drainage, low credit signaling,
-// and grace period management.
 type EscrowManager struct {
 	escrowSt escrowStore
 	ledgerSt ledgerReader
@@ -52,7 +50,6 @@ func NewEscrowManager(
 	}
 }
 
-// CreateEscrow initializes an escrow account when a subscription activates.
 func (em *EscrowManager) CreateEscrow(ctx context.Context, sessionID, hostID, indexerID string, initialBalance, pricePerBlock float64) error {
 	lowWater := pricePerBlock * em.cfg.LowCreditMultiplier
 	rec := &store.EscrowAccountRecord{
@@ -74,7 +71,6 @@ func (em *EscrowManager) CreateEscrow(ctx context.Context, sessionID, hostID, in
 	return err
 }
 
-// StartDrainLoop runs the drain loop in the background.
 func (em *EscrowManager) StartDrainLoop(ctx context.Context) {
 	em.wg.Add(1)
 	go func() {
@@ -99,13 +95,11 @@ func (em *EscrowManager) StartDrainLoop(ctx context.Context) {
 	em.log.Infof("escrow drain loop started (interval=%ds)", em.cfg.DrainIntervalSeconds)
 }
 
-// Stop halts the drain loop.
 func (em *EscrowManager) Stop() {
 	close(em.stopCh)
 	em.wg.Wait()
 }
 
-// DrainSession updates the escrow balance based on the session ledger's verified blocks.
 func (em *EscrowManager) DrainSession(ctx context.Context, sessionID string) error {
 	escrow, err := em.escrowSt.GetBySession(ctx, sessionID)
 	if err != nil {
@@ -165,7 +159,6 @@ func (em *EscrowManager) DrainSession(ctx context.Context, sessionID string) err
 	return em.escrowSt.Update(ctx, escrow.DocID, fields)
 }
 
-// TopUp adds credit to an escrow account and clears the low credit signal.
 func (em *EscrowManager) TopUp(ctx context.Context, sessionID string, amount float64) error {
 	if amount <= 0 {
 		return fmt.Errorf("topup amount must be positive, got %g", amount)

@@ -46,7 +46,6 @@ type EscalationHandler interface {
 	OnUnderReportExpired(ctx context.Context, sessionID string, claimID, attestID string) error
 }
 
-// Manager handles the accounting lifecycle: delivery claims, attestations, and comparisons.
 type Manager struct {
 	claimSt    claimStore
 	attestSt   attestationStore
@@ -78,12 +77,10 @@ func NewManager(
 	}
 }
 
-// WithEscalation attaches an escalation handler for mismatch and under-report outcomes.
 func (m *Manager) WithEscalation(h EscalationHandler) {
 	m.escalation = h
 }
 
-// SubmitDeliveryClaim validates and stores a delivery claim from an indexer.
 func (m *Manager) SubmitDeliveryClaim(ctx context.Context, req SubmitClaimRequest) (*store.DeliveryClaimRecord, error) {
 	if req.SessionID == "" || req.IndexerID == "" || req.BlockNumber <= 0 {
 		return nil, fmt.Errorf("session_id, indexer_id, and block_number are required")
@@ -124,7 +121,6 @@ func (m *Manager) SubmitDeliveryClaim(ctx context.Context, req SubmitClaimReques
 	return created, nil
 }
 
-// SubmitAttestation validates and stores a host attestation.
 func (m *Manager) SubmitAttestation(ctx context.Context, req SubmitAttestationRequest) (*store.AttestationRecord, error) {
 	if req.SessionID == "" || req.HostID == "" || req.BlockNumber <= 0 {
 		return nil, fmt.Errorf("session_id, host_id, and block_number are required")
@@ -161,7 +157,6 @@ func (m *Manager) SubmitAttestation(ctx context.Context, req SubmitAttestationRe
 	return created, nil
 }
 
-// CreateSessionLedger initializes a session ledger when a subscription activates.
 func (m *Manager) CreateSessionLedger(ctx context.Context, sessionID, hostID, indexerID string, initialEscrow, pricePerBlock float64) error {
 	rec := &store.SessionLedgerRecord{
 		LedgerID:          uuid.New().String(),
@@ -179,17 +174,14 @@ func (m *Manager) CreateSessionLedger(ctx context.Context, sessionID, hostID, in
 	return err
 }
 
-// GetSessionLedger returns the current session ledger.
 func (m *Manager) GetSessionLedger(ctx context.Context, sessionID string) (*store.SessionLedgerRecord, error) {
 	return m.ledgerSt.GetBySession(ctx, sessionID)
 }
 
-// GetComparisons returns comparison results for a session.
 func (m *Manager) GetComparisons(ctx context.Context, sessionID string) ([]store.ComparisonResultRecord, error) {
 	return m.compSt.ListBySession(ctx, sessionID)
 }
 
-// StartComparisonLoop runs the comparison engine in the background.
 func (m *Manager) StartComparisonLoop(ctx context.Context) {
 	m.wg.Add(1)
 	go func() {
@@ -214,13 +206,11 @@ func (m *Manager) StartComparisonLoop(ctx context.Context) {
 	m.log.Infof("accounting comparison loop started (interval=%ds)", m.cfg.ComparisonIntervalSeconds)
 }
 
-// Stop halts the comparison loop.
 func (m *Manager) Stop() {
 	close(m.stopCh)
 	m.wg.Wait()
 }
 
-// Compare performs the comparison for a specific (session, block) pair.
 // It handles all comparison outcomes including clean delivery, under-report, mismatch, and silent parties.
 func (m *Manager) Compare(ctx context.Context, sessionID string, blockN int) (*ComparisonResult, error) {
 	claim, err := m.claimSt.GetBySessionAndBlock(ctx, sessionID, blockN)

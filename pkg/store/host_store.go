@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// HostStore provides CRUD operations on the Scheduler__Host collection.
 type HostStore struct {
 	db dbClient
 }
@@ -74,7 +73,6 @@ func (s *HostStore) Delete(ctx context.Context, docID string) error {
 	return nil
 }
 
-// UpdateAPIKeyHash replaces the stored API key hash for a host.
 func (s *HostStore) UpdateAPIKeyHash(ctx context.Context, docID, hash string) error {
 	return s.Update(ctx, docID, map[string]any{"apiKeyHash": hash})
 }

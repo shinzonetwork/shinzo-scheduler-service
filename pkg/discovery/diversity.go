@@ -2,9 +2,6 @@ package discovery
 
 import "time"
 
-// DiversityWeight returns a weight in (0, 1] for an indexer relative to a host
-// based on how recently they were matched. Recent pairings yield a lower weight
-// (down to 0.1), which decays linearly back toward 1.0 over recencyWindow.
 func DiversityWeight(lastMatchedAt time.Time, recencyWindow time.Duration) float64 {
 	if recencyWindow <= 0 {
 		return 1.0

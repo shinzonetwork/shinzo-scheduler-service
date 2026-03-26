@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// ClaimStore provides CRUD operations on the Scheduler__DeliveryClaim collection.
 type ClaimStore struct {
 	db dbClient
 }
@@ -49,7 +48,6 @@ func (s *ClaimStore) ListBySession(ctx context.Context, sessionID string) ([]Del
 	return s.queryMany(ctx, q)
 }
 
-// ListPending returns all claims in pending status.
 func (s *ClaimStore) ListPending(ctx context.Context) ([]DeliveryClaimRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__DeliveryClaim(filter: {status: {_eq: %q}}) { %s }

@@ -1,6 +1,5 @@
 package store
 
-// IndexerRecord mirrors the Scheduler__Indexer DefraDB collection.
 // snapshotRanges and pricing are stored as JSON strings.
 type IndexerRecord struct {
 	DocID            string  `json:"_docID,omitempty"`
@@ -20,7 +19,6 @@ type IndexerRecord struct {
 	APIKeyHash       string  `json:"apiKeyHash"`
 }
 
-// HostRecord mirrors the Scheduler__Host DefraDB collection.
 type HostRecord struct {
 	DocID         string `json:"_docID,omitempty"`
 	PeerID        string `json:"peerId"`
@@ -36,13 +34,11 @@ type HostRecord struct {
 	Budget        string `json:"budget"` // JSON: HostBudget
 }
 
-// HostBudget is the parsed form of HostRecord.Budget JSON.
 type HostBudget struct {
 	MaxTipPer1kBlocks   float64 `json:"maxTipPer1kBlocks"`
 	MaxSnapshotPerRange float64 `json:"maxSnapshotPerRange"`
 }
 
-// SubscriptionRecord mirrors the Scheduler__Subscription DefraDB collection.
 type SubscriptionRecord struct {
 	DocID          string `json:"_docID,omitempty"`
 	SubscriptionID string `json:"subscriptionId"`
@@ -59,7 +55,6 @@ type SubscriptionRecord struct {
 	Metadata       string `json:"metadata"`
 }
 
-// ProbeResultRecord mirrors the Scheduler__ProbeResult DefraDB collection.
 type ProbeResultRecord struct {
 	DocID     string `json:"_docID,omitempty"`
 	IndexerID string `json:"indexerId"`
@@ -69,7 +64,6 @@ type ProbeResultRecord struct {
 	LatencyMs int    `json:"latencyMs"`
 }
 
-// RatingRecord mirrors the Scheduler__Rating DefraDB collection.
 type RatingRecord struct {
 	DocID     string  `json:"_docID,omitempty"`
 	IndexerID string  `json:"indexerId"`
@@ -79,7 +73,6 @@ type RatingRecord struct {
 	RatedAt   string  `json:"ratedAt"`
 }
 
-// SnapshotRange is an element in IndexerRecord.SnapshotRanges JSON.
 type SnapshotRange struct {
 	Start     int    `json:"start"`
 	End       int    `json:"end"`
@@ -88,13 +81,11 @@ type SnapshotRange struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-// Pricing is the parsed form of IndexerRecord.Pricing JSON.
 type Pricing struct {
 	TipPer1kBlocks   float64 `json:"tipPer1kBlocks"`
 	SnapshotPerRange float64 `json:"snapshotPerRange"`
 }
 
-// MatchHistoryRecord mirrors the Scheduler__MatchHistory DefraDB collection.
 type MatchHistoryRecord struct {
 	DocID         string  `json:"_docID,omitempty"`
 	MatchID       string  `json:"matchId"`
@@ -105,7 +96,6 @@ type MatchHistoryRecord struct {
 	ClearingPrice float64 `json:"clearingPrice"`
 }
 
-// ContradictionRecord mirrors the Scheduler__Contradiction DefraDB collection.
 type ContradictionRecord struct {
 	DocID         string `json:"_docID,omitempty"`
 	EvidenceID    string `json:"evidenceId"`
@@ -115,7 +105,6 @@ type ContradictionRecord struct {
 	Resolved      bool   `json:"resolved"`
 }
 
-// DeliveryClaimRecord mirrors the Scheduler__DeliveryClaim DefraDB collection.
 type DeliveryClaimRecord struct {
 	DocID          string `json:"_docID,omitempty"`
 	ClaimID        string `json:"claimId"`
@@ -129,7 +118,6 @@ type DeliveryClaimRecord struct {
 	Status         string `json:"status"`
 }
 
-// AttestationRecord mirrors the Scheduler__Attestation DefraDB collection.
 type AttestationRecord struct {
 	DocID           string `json:"_docID,omitempty"`
 	AttestationID   string `json:"attestationId"`
@@ -142,7 +130,6 @@ type AttestationRecord struct {
 	Status          string `json:"status"`
 }
 
-// SessionLedgerRecord mirrors the Scheduler__SessionLedger DefraDB collection.
 type SessionLedgerRecord struct {
 	DocID             string  `json:"_docID,omitempty"`
 	LedgerID          string  `json:"ledgerId"`
@@ -157,7 +144,6 @@ type SessionLedgerRecord struct {
 	UpdatedAt         string  `json:"updatedAt"`
 }
 
-// ComparisonResultRecord mirrors the Scheduler__ComparisonResult DefraDB collection.
 type ComparisonResultRecord struct {
 	DocID         string `json:"_docID,omitempty"`
 	ComparisonID  string `json:"comparisonId"`
@@ -169,7 +155,6 @@ type ComparisonResultRecord struct {
 	ComparedAt    string `json:"comparedAt"`
 }
 
-// EscrowAccountRecord mirrors the Scheduler__EscrowAccount DefraDB collection.
 type EscrowAccountRecord struct {
 	DocID             string  `json:"_docID,omitempty"`
 	EscrowID          string  `json:"escrowId"`
@@ -187,7 +172,6 @@ type EscrowAccountRecord struct {
 	UpdatedAt         string  `json:"updatedAt"`
 }
 
-// SettlementRecord mirrors the Scheduler__Settlement DefraDB collection.
 type SettlementRecord struct {
 	DocID          string  `json:"_docID,omitempty"`
 	SettlementID   string  `json:"settlementId"`
@@ -202,7 +186,6 @@ type SettlementRecord struct {
 	SettledAt      string  `json:"settledAt"`
 }
 
-// VerdictRecord mirrors the Scheduler__Verdict DefraDB collection.
 type VerdictRecord struct {
 	DocID                string `json:"_docID,omitempty"`
 	VerdictID            string `json:"verdictId"`

@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// EscrowStore provides CRUD operations on the Scheduler__EscrowAccount collection.
 type EscrowStore struct {
 	db dbClient
 }
@@ -49,7 +48,6 @@ func (s *EscrowStore) GetBySession(ctx context.Context, sessionID string) (*Escr
 	return &many[0], nil
 }
 
-// ListActive returns all escrow accounts with active status.
 func (s *EscrowStore) ListActive(ctx context.Context) ([]EscrowAccountRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__EscrowAccount(filter: {status: {_eq: %q}}) { %s }

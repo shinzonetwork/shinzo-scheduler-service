@@ -13,13 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// Server wraps the HTTP server and all registered handlers.
 type Server struct {
 	httpServer *http.Server
 	log        *zap.SugaredLogger
 }
 
-// NewServer constructs and wires up the HTTP mux.
 func NewServer(
 	cfg config.ServerConfig,
 	indexerH *handlers.IndexerHandler,
@@ -131,13 +129,11 @@ func NewServer(
 	return &Server{httpServer: srv, log: log}
 }
 
-// Start begins serving and blocks until the server shuts down.
 func (s *Server) Start() error {
 	s.log.Infof("scheduler API listening on %s", s.httpServer.Addr)
 	return s.httpServer.ListenAndServe()
 }
 
-// Shutdown gracefully drains in-flight requests.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }

@@ -17,7 +17,6 @@ type accountingManager interface {
 	GetComparisons(ctx context.Context, sessionID string) ([]store.ComparisonResultRecord, error)
 }
 
-// AccountingHandler serves /v1/claims, /v1/attestations, and session ledger routes.
 type AccountingHandler struct {
 	mgr accountingManager
 }
@@ -26,7 +25,6 @@ func NewAccountingHandler(mgr accountingManager) *AccountingHandler {
 	return &AccountingHandler{mgr: mgr}
 }
 
-// SubmitClaim handles POST /v1/claims.
 func (h *AccountingHandler) SubmitClaim(w http.ResponseWriter, r *http.Request) {
 	var req accounting.SubmitClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -42,7 +40,6 @@ func (h *AccountingHandler) SubmitClaim(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusCreated, claim)
 }
 
-// SubmitAttestation handles POST /v1/attestations.
 func (h *AccountingHandler) SubmitAttestation(w http.ResponseWriter, r *http.Request) {
 	var req accounting.SubmitAttestationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -58,7 +55,6 @@ func (h *AccountingHandler) SubmitAttestation(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusCreated, attest)
 }
 
-// SessionLedger handles GET /v1/sessions/{id}/ledger.
 func (h *AccountingHandler) SessionLedger(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["id"]
 	if sessionID == "" {
@@ -78,7 +74,6 @@ func (h *AccountingHandler) SessionLedger(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, ledger)
 }
 
-// Comparisons handles GET /v1/sessions/{id}/comparisons.
 func (h *AccountingHandler) Comparisons(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["id"]
 	if sessionID == "" {

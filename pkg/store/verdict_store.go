@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// VerdictStore provides CRUD operations on the Scheduler__Verdict collection.
 type VerdictStore struct {
 	db dbClient
 }
@@ -54,7 +53,6 @@ func (s *VerdictStore) ListBySession(ctx context.Context, sessionID string) ([]V
 	return s.queryMany(ctx, q)
 }
 
-// ListUnsubmitted returns verdicts not yet submitted to ShinzoHub.
 func (s *VerdictStore) ListUnsubmitted(ctx context.Context) ([]VerdictRecord, error) {
 	q := fmt.Sprintf(`query {
 		Scheduler__Verdict(filter: {submittedToHub: {_eq: false}}) { %s }

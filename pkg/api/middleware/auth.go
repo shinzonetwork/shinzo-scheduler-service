@@ -31,7 +31,6 @@ func RequireAPIKey(next http.Handler) http.Handler {
 	})
 }
 
-// APIKeyFromContext retrieves the API key stored by RequireAPIKey.
 func APIKeyFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(apiKeyContextKey).(string)
 	return v

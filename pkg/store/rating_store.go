@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// RatingStore provides operations on Scheduler__Rating documents.
 type RatingStore struct {
 	db dbClient
 }
