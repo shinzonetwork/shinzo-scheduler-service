@@ -13,7 +13,6 @@ func validConfig() *Config {
 	cfg := defaults()
 	cfg.Scheduler.Chain = "ethereum"
 	cfg.Scheduler.Network = "mainnet"
-	cfg.Scheduler.Auth.HMACSecret = "test-secret"
 	return cfg
 }
 
@@ -28,12 +27,6 @@ func TestValidate_PortOutOfRange(t *testing.T) {
 		cfg.Scheduler.Server.Port = port
 		assert.Error(t, cfg.Validate(), "expected error for port %d", port)
 	}
-}
-
-func TestValidate_EmptyHMACSecret(t *testing.T) {
-	cfg := validConfig()
-	cfg.Scheduler.Auth.HMACSecret = ""
-	assert.Error(t, cfg.Validate())
 }
 
 func TestValidate_ProbeIntervalZero(t *testing.T) {
@@ -198,8 +191,6 @@ func TestLoad_Success(t *testing.T) {
 scheduler:
   chain: ethereum
   network: mainnet
-  auth:
-    hmac_secret: test-secret
 `
 	f, err := os.CreateTemp(t.TempDir(), "*.yaml")
 	require.NoError(t, err)
@@ -211,12 +202,10 @@ scheduler:
 	require.NoError(t, err)
 	assert.Equal(t, "ethereum", cfg.Scheduler.Chain)
 	assert.Equal(t, "mainnet", cfg.Scheduler.Network)
-	assert.Equal(t, "test-secret", cfg.Scheduler.Auth.HMACSecret)
 }
 
 func TestApplyEnvOverrides(t *testing.T) {
 	t.Setenv("DEFRA_KEYRING_SECRET", "defra-secret")
-	t.Setenv("SCHEDULER_HMAC_SECRET", "hmac-secret")
 	t.Setenv("SCHEDULER_CHAIN", "polygon")
 	t.Setenv("SCHEDULER_NETWORK", "testnet")
 
@@ -224,7 +213,6 @@ func TestApplyEnvOverrides(t *testing.T) {
 	applyEnvOverrides(cfg)
 
 	assert.Equal(t, "defra-secret", cfg.DefraDB.KeyringSecret)
-	assert.Equal(t, "hmac-secret", cfg.Scheduler.Auth.HMACSecret)
 	assert.Equal(t, "polygon", cfg.Scheduler.Chain)
 	assert.Equal(t, "testnet", cfg.Scheduler.Network)
 }

@@ -27,7 +27,6 @@ func NewServer(
 	paymentH *handlers.PaymentHandler,
 	healthH *handlers.HealthHandler,
 	metricsH *handlers.MetricsHandler,
-	authH *handlers.AuthHandler,
 	accountingH *handlers.AccountingHandler,
 	settlementH *handlers.SettlementHandler,
 	log *zap.SugaredLogger,
@@ -112,12 +111,6 @@ func NewServer(
 		setl.HandleFunc("/v1/settlements/{session_id}", settlementH.Settlements).Methods(http.MethodGet)
 		setl.HandleFunc("/v1/verdicts/{session_id}", settlementH.Verdicts).Methods(http.MethodGet)
 	}
-
-	// Auth — key rotation (any authenticated peer).
-	authR := r.NewRoute().Subrouter()
-	authR.Use(middleware.RequireAPIKey)
-	authR.Use(middleware.RateLimitByKey(5, 10))
-	authR.HandleFunc("/v1/auth/rotate-key", authH.RotateKey).Methods(http.MethodPost)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

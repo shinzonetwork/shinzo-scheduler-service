@@ -24,7 +24,6 @@ type RegisterHostRequest struct {
 // RegisterHostResponse is returned on successful registration.
 type RegisterHostResponse struct {
 	PeerID                   string `json:"peer_id"`
-	APIKey                   string `json:"api_key"`
 	HeartbeatIntervalSeconds int    `json:"heartbeat_interval_seconds"`
 }
 
@@ -53,11 +52,6 @@ func (r *HostRegistry) Register(ctx context.Context, req RegisterHostRequest) (*
 		return nil, fmt.Errorf("registration rejected: %w", err)
 	}
 
-	plainKey, keyHash, err := r.verifier.IssueAPIKey(req.PeerID)
-	if err != nil {
-		return nil, err
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	existing, err := r.store.GetByPeerID(ctx, req.PeerID)
@@ -67,10 +61,9 @@ func (r *HostRegistry) Register(ctx context.Context, req RegisterHostRequest) (*
 
 	if existing != nil {
 		if err := r.store.Update(ctx, existing.DocID, map[string]any{
-			"httpUrl":    req.HTTPUrl,
-			"multiaddr":  req.Multiaddr,
-			"status":     store.StatusActive,
-			"apiKeyHash": keyHash,
+			"httpUrl":   req.HTTPUrl,
+			"multiaddr": req.Multiaddr,
+			"status":    store.StatusActive,
 		}); err != nil {
 			return nil, err
 		}
@@ -86,7 +79,6 @@ func (r *HostRegistry) Register(ctx context.Context, req RegisterHostRequest) (*
 			LastHeartbeat: now,
 			RegisteredAt:  now,
 			Status:        store.StatusActive,
-			APIKeyHash:    keyHash,
 		}
 		if _, err := r.store.Create(ctx, rec); err != nil {
 			return nil, err
@@ -94,7 +86,7 @@ func (r *HostRegistry) Register(ctx context.Context, req RegisterHostRequest) (*
 		r.log.Infow("host registered", "peer_id", req.PeerID)
 	}
 
-	return &RegisterHostResponse{PeerID: req.PeerID, APIKey: plainKey, HeartbeatIntervalSeconds: r.heartbeatIntervalSeconds}, nil
+	return &RegisterHostResponse{PeerID: req.PeerID, HeartbeatIntervalSeconds: r.heartbeatIntervalSeconds}, nil
 }
 
 func (r *HostRegistry) Heartbeat(ctx context.Context, peerID string) error {
@@ -126,8 +118,10 @@ func (r *HostRegistry) Deregister(ctx context.Context, peerID string) error {
 	return nil
 }
 
-func (r *HostRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*store.HostRecord, error) {
-	peerID, err := auth.ExtractPeerID(apiKey)
+// VerifyRequest authenticates a per-request Bearer token by looking up the
+// host's stored secp256k1 public key and verifying the token signature.
+func (r *HostRegistry) VerifyRequest(ctx context.Context, token string) (*store.HostRecord, error) {
+	peerID, err := auth.ExtractPeerID(token)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +132,7 @@ func (r *HostRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*store.
 	if rec == nil {
 		return nil, fmt.Errorf("host not found")
 	}
-	if err := r.verifier.VerifyAPIKey(apiKey, rec.APIKeyHash); err != nil {
+	if _, err := r.verifier.VerifyRequestToken(rec.DefraPK, token); err != nil {
 		return nil, err
 	}
 	return rec, nil

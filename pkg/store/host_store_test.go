@@ -112,13 +112,6 @@ func TestHostStore_Delete_GQLError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestHostStore_UpdateAPIKeyHash_Success(t *testing.T) {
-	db := &mockDB{result: okResult(map[string]any{})}
-	s := NewHostStore(db)
-	err := s.UpdateAPIKeyHash(context.Background(), "h-1", "hash-xyz")
-	require.NoError(t, err)
-}
-
 func TestHostStore_Count_Success(t *testing.T) {
 	db := &mockDB{result: okResult(map[string]any{
 		"Scheduler__Host": []any{

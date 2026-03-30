@@ -121,8 +121,8 @@ func (h *PaymentHandler) Quote(w http.ResponseWriter, r *http.Request) {
 // Phase 3: will verify the TxHash on ShinzoHub.
 func (h *PaymentHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 	// Only authenticated hosts or operators may call this.
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	if _, err := h.hostReg.VerifyAPIKey(r.Context(), apiKey); err != nil {
+	token := middleware.APIKeyFromContext(r.Context())
+	if _, err := h.hostReg.VerifyRequest(r.Context(), token); err != nil {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}

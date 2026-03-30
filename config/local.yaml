@@ -34,9 +34,6 @@ scheduler:
     max_concurrent_probes: 20      # semaphore cap on outbound health-check connections
     heartbeat_interval_seconds: 30 # advertised to indexers/hosts on registration
 
-  auth:
-    hmac_secret: ""           # override with SCHEDULER_HMAC_SECRET
-
   shinzohub:
     enabled: false
     rpc_url: "rpc.devnet.shinzo.network:26657"

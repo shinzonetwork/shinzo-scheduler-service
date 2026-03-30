@@ -146,13 +146,6 @@ func TestIndexerStore_Delete_GQLError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestIndexerStore_UpdateAPIKeyHash_Success(t *testing.T) {
-	db := &mockDB{result: okResult(map[string]any{})}
-	s := NewIndexerStore(db)
-	err := s.UpdateAPIKeyHash(context.Background(), "doc-1", "newhash")
-	require.NoError(t, err)
-}
-
 func TestIndexerStore_Count_Success(t *testing.T) {
 	db := &mockDB{result: okResult(map[string]any{
 		"Scheduler__Indexer": []any{

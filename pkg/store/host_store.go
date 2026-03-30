@@ -18,7 +18,7 @@ func (s *HostStore) GetByPeerID(ctx context.Context, peerID string) (*HostRecord
 	q := fmt.Sprintf(`query {
 		Scheduler__Host(filter: {peerId: {_eq: %q}}) {
 			_docID peerId defraPk httpUrl multiaddr chain network
-			lastHeartbeat registeredAt status apiKeyHash budget
+			lastHeartbeat registeredAt status budget
 		}
 	}`, peerID)
 	return s.querySingle(ctx, q)
@@ -28,7 +28,7 @@ func (s *HostStore) GetByDefraPK(ctx context.Context, defraPK string) (*HostReco
 	q := fmt.Sprintf(`query {
 		Scheduler__Host(filter: {defraPk: {_eq: %q}}) {
 			_docID peerId defraPk httpUrl multiaddr chain network
-			lastHeartbeat registeredAt status apiKeyHash budget
+			lastHeartbeat registeredAt status budget
 		}
 	}`, defraPK)
 	return s.querySingle(ctx, q)
@@ -39,15 +39,15 @@ func (s *HostStore) Create(ctx context.Context, r *HostRecord) (*HostRecord, err
 		create_Scheduler__Host(input: {
 			peerId: %q, defraPk: %q, httpUrl: %q, multiaddr: %q,
 			chain: %q, network: %q, lastHeartbeat: %q,
-			registeredAt: %q, status: %q, apiKeyHash: %q, budget: %q
+			registeredAt: %q, status: %q, budget: %q
 		}) {
 			_docID peerId defraPk httpUrl multiaddr chain network
-			lastHeartbeat registeredAt status apiKeyHash budget
+			lastHeartbeat registeredAt status budget
 		}
 	}`,
 		r.PeerID, r.DefraPK, r.HTTPUrl, r.Multiaddr,
 		r.Chain, r.Network, r.LastHeartbeat,
-		r.RegisteredAt, r.Status, r.APIKeyHash, r.Budget,
+		r.RegisteredAt, r.Status, r.Budget,
 	)
 	return s.mutateOne(ctx, "create_Scheduler__Host", q)
 }
@@ -71,10 +71,6 @@ func (s *HostStore) Delete(ctx context.Context, docID string) error {
 		return fmt.Errorf("delete host %s: %v", docID, res.GQL.Errors)
 	}
 	return nil
-}
-
-func (s *HostStore) UpdateAPIKeyHash(ctx context.Context, docID, hash string) error {
-	return s.Update(ctx, docID, map[string]any{"apiKeyHash": hash})
 }
 
 func (s *HostStore) Count(ctx context.Context, status string) (int, error) {

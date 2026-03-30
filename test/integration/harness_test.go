@@ -5,6 +5,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	sdkconfig "github.com/shinzonetwork/shinzo-app-sdk/pkg/config"
 	"github.com/shinzonetwork/shinzo-app-sdk/pkg/defra"
 	"github.com/shinzonetwork/shinzo-scheduler-service/config"
@@ -35,9 +37,8 @@ import (
 )
 
 const (
-	testHMACSecret = "integration-test-hmac-secret-2026"
-	testChain      = "cosmos"
-	testNetwork    = "testnet"
+	testChain   = "cosmos"
+	testNetwork = "testnet"
 )
 
 // dbClient matches the store layer's interface for DefraDB operations.
@@ -47,9 +48,10 @@ type dbClient interface {
 
 // testHarness encapsulates a running scheduler server and all supporting infrastructure.
 type testHarness struct {
-	baseURL   string
-	cfg       *config.Config
-	verifier  *auth.Verifier
+	baseURL  string
+	cfg      *config.Config
+	peerKeys map[string]*secp256k1.PrivateKey // peerID → signing key for token generation
+
 	indexerSt *store.IndexerStore
 	hostSt    *store.HostStore
 	subSt     *store.SubscriptionStore
@@ -181,7 +183,6 @@ func baseSchedulerConfig() config.SchedulerConfig {
 			MaxConcurrentProbes:      20,
 			HeartbeatIntervalSeconds: 30,
 		},
-		Auth: config.AuthConfig{HMACSecret: testHMACSecret},
 		Diversity: config.DiversityConfig{
 			Enabled:            true,
 			RecencyWindowHours: 24,
@@ -223,7 +224,7 @@ func buildHarness(t *testing.T, enableAccounting, enableSettlement bool) *testHa
 	matchSt := store.NewMatchStore(defraNode.DB)
 
 	// Wire auth + registries.
-	verifier := auth.NewVerifier(sc.Auth.HMACSecret)
+	verifier := auth.NewVerifier()
 	log := zap.NewNop().Sugar()
 	indexerReg := registry.NewIndexerRegistry(indexerSt, verifier, log, sc.Chain, sc.Network, sc.Probe.HeartbeatIntervalSeconds)
 	hostReg := registry.NewHostRegistry(hostSt, verifier, log, sc.Chain, sc.Network, sc.Probe.HeartbeatIntervalSeconds)
@@ -253,11 +254,10 @@ func buildHarness(t *testing.T, enableAccounting, enableSettlement bool) *testHa
 	paymentH := handlers.NewPaymentHandler(subMgr, indexerSt, hostReg)
 	healthH := handlers.NewHealthHandler(indexerSt, hostSt, subSt)
 	metricsH := handlers.NewMetricsHandler(indexerSt, hostSt, subSt, probeSt, log)
-	authH := handlers.NewAuthHandler(verifier, indexerSt, hostSt, log)
 
 	h := &testHarness{
 		cfg:       cfg,
-		verifier:  verifier,
+		peerKeys:  make(map[string]*secp256k1.PrivateKey),
 		indexerSt: indexerSt,
 		hostSt:    hostSt,
 		subSt:     subSt,
@@ -314,7 +314,7 @@ func buildHarness(t *testing.T, enableAccounting, enableSettlement bool) *testHa
 
 	srv := api.NewServer(
 		cfg.Scheduler.Server,
-		indexerH, hostH, discoveryH, subscriptionH, paymentH, healthH, metricsH, authH,
+		indexerH, hostH, discoveryH, subscriptionH, paymentH, healthH, metricsH,
 		accountingH, settlementH,
 		log,
 	)
@@ -386,17 +386,20 @@ func (h *testHarness) doRequest(t *testing.T, method, path string, body any, api
 	return resp
 }
 
-// registerIndexer seeds an indexer directly in DefraDB and issues an API key.
+// registerIndexer seeds an indexer directly in DefraDB and returns a fresh auth token.
 func (h *testHarness) registerIndexer(t *testing.T, peerID string) string {
 	t.Helper()
 	ctx := context.Background()
-	plainKey, keyHash, err := h.verifier.IssueAPIKey(peerID)
+
+	priv, err := secp256k1.GeneratePrivateKey()
 	require.NoError(t, err)
+	pubHex := hex.EncodeToString(priv.PubKey().SerializeCompressed())
+	h.peerKeys[peerID] = priv
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err = h.indexerSt.Create(ctx, &store.IndexerRecord{
 		PeerID:           peerID,
-		DefraPK:          "defra-" + peerID,
+		DefraPK:          pubHex,
 		HTTPUrl:          "http://" + peerID + ":8080",
 		Multiaddr:        "/ip4/127.0.0.1/tcp/9171/p2p/" + peerID,
 		Chain:            testChain,
@@ -406,22 +409,22 @@ func (h *testHarness) registerIndexer(t *testing.T, peerID string) string {
 		LastHeartbeat:    now,
 		RegisteredAt:     now,
 		Status:           store.StatusActive,
-		APIKeyHash:       keyHash,
 	})
 	require.NoError(t, err)
-	return plainKey
+	return auth.GenerateToken(priv, peerID)
 }
 
 // registerIndexerWithOpts seeds an indexer with caller-specified fields.
 func (h *testHarness) registerIndexerWithOpts(t *testing.T, rec *store.IndexerRecord) string {
 	t.Helper()
 	ctx := context.Background()
-	plainKey, keyHash, err := h.verifier.IssueAPIKey(rec.PeerID)
+
+	priv, err := secp256k1.GeneratePrivateKey()
 	require.NoError(t, err)
-	rec.APIKeyHash = keyHash
-	if rec.DefraPK == "" {
-		rec.DefraPK = "defra-" + rec.PeerID
-	}
+	pubHex := hex.EncodeToString(priv.PubKey().SerializeCompressed())
+	h.peerKeys[rec.PeerID] = priv
+	rec.DefraPK = pubHex
+
 	if rec.Chain == "" {
 		rec.Chain = testChain
 	}
@@ -442,20 +445,23 @@ func (h *testHarness) registerIndexerWithOpts(t *testing.T, rec *store.IndexerRe
 	}
 	_, err = h.indexerSt.Create(ctx, rec)
 	require.NoError(t, err)
-	return plainKey
+	return auth.GenerateToken(priv, rec.PeerID)
 }
 
-// registerHost seeds a host directly in DefraDB and issues an API key.
+// registerHost seeds a host directly in DefraDB and returns a fresh auth token.
 func (h *testHarness) registerHost(t *testing.T, peerID string) string {
 	t.Helper()
 	ctx := context.Background()
-	plainKey, keyHash, err := h.verifier.IssueAPIKey(peerID)
+
+	priv, err := secp256k1.GeneratePrivateKey()
 	require.NoError(t, err)
+	pubHex := hex.EncodeToString(priv.PubKey().SerializeCompressed())
+	h.peerKeys[peerID] = priv
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err = h.hostSt.Create(ctx, &store.HostRecord{
 		PeerID:        peerID,
-		DefraPK:       "defra-" + peerID,
+		DefraPK:       pubHex,
 		HTTPUrl:       "http://" + peerID + ":8080",
 		Multiaddr:     "/ip4/127.0.0.1/tcp/9171/p2p/" + peerID,
 		Chain:         testChain,
@@ -463,10 +469,9 @@ func (h *testHarness) registerHost(t *testing.T, peerID string) string {
 		LastHeartbeat: now,
 		RegisteredAt:  now,
 		Status:        store.StatusActive,
-		APIKeyHash:    keyHash,
 	})
 	require.NoError(t, err)
-	return plainKey
+	return auth.GenerateToken(priv, peerID)
 }
 
 // setupSession creates a subscription via HTTP, activates it, and initializes

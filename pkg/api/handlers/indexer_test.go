@@ -30,7 +30,7 @@ func (m *mockIndexerRegistry) Register(_ context.Context, _ registry.RegisterInd
 	return m.resp, m.err
 }
 
-func (m *mockIndexerRegistry) VerifyAPIKey(_ context.Context, _ string) (*store.IndexerRecord, error) {
+func (m *mockIndexerRegistry) VerifyRequest(_ context.Context, _ string) (*store.IndexerRecord, error) {
 	return m.record, m.err
 }
 
@@ -85,7 +85,7 @@ func TestIndexerHandler_Register_BadBody(t *testing.T) {
 func TestIndexerHandler_Register_Success(t *testing.T) {
 	h := &IndexerHandler{
 		reg: &mockIndexerRegistry{
-			resp: &registry.RegisterIndexerResponse{PeerID: "peer1", APIKey: "key1"},
+			resp: &registry.RegisterIndexerResponse{PeerID: "peer1"},
 		},
 		indexerSt: &mockIndexerGetter{},
 	}
@@ -166,7 +166,7 @@ func TestIndexerHandler_Get_NotFound(t *testing.T) {
 func TestIndexerHandler_Get_Success(t *testing.T) {
 	h := &IndexerHandler{
 		reg:       &mockIndexerRegistry{},
-		indexerSt: &mockIndexerGetter{record: &store.IndexerRecord{PeerID: "peer1", APIKeyHash: "should-be-omitted"}},
+		indexerSt: &mockIndexerGetter{record: &store.IndexerRecord{PeerID: "peer1"}},
 	}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/v1/indexers/peer1", nil)
@@ -175,7 +175,7 @@ func TestIndexerHandler_Get_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var rec store.IndexerRecord
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &rec))
-	assert.Empty(t, rec.APIKeyHash, "api key hash must not be exposed")
+	assert.Equal(t, "peer1", rec.PeerID)
 }
 
 func TestIndexerHandler_Deregister_Unauthorized(t *testing.T) {
@@ -282,7 +282,7 @@ type mockIndexerRegistryWithDeregErr struct {
 func (m *mockIndexerRegistryWithDeregErr) Register(_ context.Context, _ registry.RegisterIndexerRequest) (*registry.RegisterIndexerResponse, error) {
 	return nil, nil
 }
-func (m *mockIndexerRegistryWithDeregErr) VerifyAPIKey(_ context.Context, _ string) (*store.IndexerRecord, error) {
+func (m *mockIndexerRegistryWithDeregErr) VerifyRequest(_ context.Context, _ string) (*store.IndexerRecord, error) {
 	return m.record, nil
 }
 func (m *mockIndexerRegistryWithDeregErr) Heartbeat(_ context.Context, _ string, _ registry.HeartbeatRequest) error {

@@ -18,7 +18,6 @@ type SchedulerConfig struct {
 	Network    string           `yaml:"network"`
 	Server     ServerConfig     `yaml:"server"`
 	Probe      ProbeConfig      `yaml:"probe"`
-	Auth       AuthConfig       `yaml:"auth"`
 	ShinzoHub  ShinzoHubConfig  `yaml:"shinzohub"`
 	Pricing    PricingConfig    `yaml:"pricing"`
 	Bootstrap  BootstrapConfig  `yaml:"bootstrap"`
@@ -43,10 +42,6 @@ type ProbeConfig struct {
 	ProbeHistoryLimit        int `yaml:"probe_history_limit"`
 	MaxConcurrentProbes      int `yaml:"max_concurrent_probes"`
 	HeartbeatIntervalSeconds int `yaml:"heartbeat_interval_seconds"`
-}
-
-type AuthConfig struct {
-	HMACSecret string `yaml:"hmac_secret"`
 }
 
 type ShinzoHubConfig struct {
@@ -172,9 +167,6 @@ func (c *Config) Validate() error {
 	if s.Server.Port <= 0 || s.Server.Port > 65535 {
 		return fmt.Errorf("scheduler.server.port must be in range 1-65535 (got %d)", s.Server.Port)
 	}
-	if s.Auth.HMACSecret == "" {
-		return fmt.Errorf("scheduler.auth.hmac_secret must not be empty; set SCHEDULER_HMAC_SECRET or config key")
-	}
 	if s.Probe.IntervalSeconds <= 0 {
 		return fmt.Errorf("scheduler.probe.interval_seconds must be > 0")
 	}
@@ -227,9 +219,6 @@ func (c *Config) Validate() error {
 func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("DEFRA_KEYRING_SECRET"); v != "" {
 		cfg.DefraDB.KeyringSecret = v
-	}
-	if v := os.Getenv("SCHEDULER_HMAC_SECRET"); v != "" {
-		cfg.Scheduler.Auth.HMACSecret = v
 	}
 	if v := os.Getenv("SCHEDULER_CHAIN"); v != "" {
 		cfg.Scheduler.Chain = v

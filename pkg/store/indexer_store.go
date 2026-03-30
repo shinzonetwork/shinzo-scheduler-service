@@ -19,7 +19,7 @@ func (s *IndexerStore) GetByPeerID(ctx context.Context, peerID string) (*Indexer
 		Scheduler__Indexer(filter: {peerId: {_eq: %q}}) {
 			_docID peerId defraPk httpUrl multiaddr chain network currentTip
 			snapshotRanges pricing reliabilityScore lastHeartbeat registeredAt
-			status apiKeyHash
+			status
 		}
 	}`, peerID)
 	return s.querySingle(ctx, q)
@@ -30,7 +30,7 @@ func (s *IndexerStore) GetByDefraPK(ctx context.Context, defraPK string) (*Index
 		Scheduler__Indexer(filter: {defraPk: {_eq: %q}}) {
 			_docID peerId defraPk httpUrl multiaddr chain network currentTip
 			snapshotRanges pricing reliabilityScore lastHeartbeat registeredAt
-			status apiKeyHash
+			status
 		}
 	}`, defraPK)
 	return s.querySingle(ctx, q)
@@ -45,7 +45,7 @@ func (s *IndexerStore) ListActive(ctx context.Context, chain, network string) ([
 		}) {
 			_docID peerId defraPk httpUrl multiaddr chain network currentTip
 			snapshotRanges pricing reliabilityScore lastHeartbeat registeredAt
-			status apiKeyHash
+			status
 		}
 	}`, chain, network)
 	return s.queryMany(ctx, q)
@@ -56,7 +56,7 @@ func (s *IndexerStore) ListAllActive(ctx context.Context) ([]IndexerRecord, erro
 		Scheduler__Indexer(filter: {status: {_eq: "active"}}) {
 			_docID peerId defraPk httpUrl multiaddr chain network currentTip
 			snapshotRanges pricing reliabilityScore lastHeartbeat registeredAt
-			status apiKeyHash
+			status
 		}
 	}`
 	return s.queryMany(ctx, q)
@@ -69,18 +69,18 @@ func (s *IndexerStore) Create(ctx context.Context, r *IndexerRecord) (*IndexerRe
 			chain: %q, network: %q, currentTip: %d,
 			snapshotRanges: %q, pricing: %q,
 			reliabilityScore: %g, lastHeartbeat: %q,
-			registeredAt: %q, status: %q, apiKeyHash: %q
+			registeredAt: %q, status: %q
 		}) {
 			_docID peerId defraPk httpUrl multiaddr chain network currentTip
 			snapshotRanges pricing reliabilityScore lastHeartbeat registeredAt
-			status apiKeyHash
+			status
 		}
 	}`,
 		r.PeerID, r.DefraPK, r.HTTPUrl, r.Multiaddr,
 		r.Chain, r.Network, r.CurrentTip,
 		r.SnapshotRanges, r.Pricing,
 		r.ReliabilityScore, r.LastHeartbeat,
-		r.RegisteredAt, r.Status, r.APIKeyHash,
+		r.RegisteredAt, r.Status,
 	)
 	return s.mutateOne(ctx, "create_Scheduler__Indexer", q)
 }
@@ -104,10 +104,6 @@ func (s *IndexerStore) Delete(ctx context.Context, docID string) error {
 		return fmt.Errorf("delete indexer %s: %v", docID, res.GQL.Errors)
 	}
 	return nil
-}
-
-func (s *IndexerStore) UpdateAPIKeyHash(ctx context.Context, docID, hash string) error {
-	return s.Update(ctx, docID, map[string]any{"apiKeyHash": hash})
 }
 
 func (s *IndexerStore) Count(ctx context.Context, status string) (int, error) {

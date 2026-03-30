@@ -45,7 +45,7 @@ type mockHostVerifier struct {
 	err    error
 }
 
-func (m *mockHostVerifier) VerifyAPIKey(_ context.Context, _ string) (*store.HostRecord, error) {
+func (m *mockHostVerifier) VerifyRequest(_ context.Context, _ string) (*store.HostRecord, error) {
 	return m.record, m.err
 }
 

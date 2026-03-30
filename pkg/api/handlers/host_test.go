@@ -27,7 +27,7 @@ func (m *mockHostRegistry) Register(_ context.Context, _ registry.RegisterHostRe
 	return m.resp, m.err
 }
 
-func (m *mockHostRegistry) VerifyAPIKey(_ context.Context, _ string) (*store.HostRecord, error) {
+func (m *mockHostRegistry) VerifyRequest(_ context.Context, _ string) (*store.HostRecord, error) {
 	return m.record, m.err
 }
 
@@ -61,7 +61,7 @@ func TestHostHandler_Register_BadBody(t *testing.T) {
 func TestHostHandler_Register_Success(t *testing.T) {
 	h := &HostHandler{
 		reg: &mockHostRegistry{
-			resp: &registry.RegisterHostResponse{PeerID: "host1", APIKey: "key1"},
+			resp: &registry.RegisterHostResponse{PeerID: "host1"},
 		},
 		hostSt: &mockHostGetter{},
 	}
@@ -138,7 +138,7 @@ func TestHostHandler_Get_NotFound(t *testing.T) {
 func TestHostHandler_Get_Success(t *testing.T) {
 	h := &HostHandler{
 		reg:    &mockHostRegistry{record: &store.HostRecord{PeerID: "host1"}},
-		hostSt: &mockHostGetter{record: &store.HostRecord{PeerID: "host1", APIKeyHash: "omit-me"}},
+		hostSt: &mockHostGetter{record: &store.HostRecord{PeerID: "host1"}},
 	}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/v1/hosts/host1", nil)
@@ -147,7 +147,7 @@ func TestHostHandler_Get_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var rec store.HostRecord
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &rec))
-	assert.Empty(t, rec.APIKeyHash)
+	assert.Equal(t, "host1", rec.PeerID)
 }
 
 func TestHostHandler_Deregister_Success(t *testing.T) {
@@ -242,7 +242,7 @@ type mockHostRegistryWithHeartbeatErr struct {
 func (m *mockHostRegistryWithHeartbeatErr) Register(_ context.Context, _ registry.RegisterHostRequest) (*registry.RegisterHostResponse, error) {
 	return nil, nil
 }
-func (m *mockHostRegistryWithHeartbeatErr) VerifyAPIKey(_ context.Context, _ string) (*store.HostRecord, error) {
+func (m *mockHostRegistryWithHeartbeatErr) VerifyRequest(_ context.Context, _ string) (*store.HostRecord, error) {
 	return m.record, nil
 }
 func (m *mockHostRegistryWithHeartbeatErr) Heartbeat(_ context.Context, _ string) error {
@@ -260,7 +260,7 @@ type mockHostRegistryWithDeregErr struct {
 func (m *mockHostRegistryWithDeregErr) Register(_ context.Context, _ registry.RegisterHostRequest) (*registry.RegisterHostResponse, error) {
 	return nil, nil
 }
-func (m *mockHostRegistryWithDeregErr) VerifyAPIKey(_ context.Context, _ string) (*store.HostRecord, error) {
+func (m *mockHostRegistryWithDeregErr) VerifyRequest(_ context.Context, _ string) (*store.HostRecord, error) {
 	return m.record, nil
 }
 func (m *mockHostRegistryWithDeregErr) Heartbeat(_ context.Context, _ string) error {

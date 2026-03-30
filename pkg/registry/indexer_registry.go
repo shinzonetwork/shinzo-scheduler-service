@@ -31,7 +31,6 @@ type RegisterIndexerRequest struct {
 // RegisterIndexerResponse is returned on successful registration.
 type RegisterIndexerResponse struct {
 	PeerID                   string `json:"peer_id"`
-	APIKey                   string `json:"api_key"` // presented once; store securely
 	HeartbeatIntervalSeconds int    `json:"heartbeat_interval_seconds"`
 }
 
@@ -66,11 +65,6 @@ func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerReque
 		return nil, fmt.Errorf("registration rejected: %w", err)
 	}
 
-	plainKey, keyHash, err := r.verifier.IssueAPIKey(req.PeerID)
-	if err != nil {
-		return nil, err
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	existing, err := r.store.GetByPeerID(ctx, req.PeerID)
@@ -79,13 +73,12 @@ func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerReque
 	}
 
 	if existing != nil {
-		// Re-registration: update mutable fields and rotate the API key.
+		// Re-registration: update mutable fields.
 		if err := r.store.Update(ctx, existing.DocID, map[string]any{
-			"httpUrl":    req.HTTPUrl,
-			"multiaddr":  req.Multiaddr,
-			"pricing":    req.Pricing,
-			"status":     store.StatusActive,
-			"apiKeyHash": keyHash,
+			"httpUrl":   req.HTTPUrl,
+			"multiaddr": req.Multiaddr,
+			"pricing":   req.Pricing,
+			"status":    store.StatusActive,
 		}); err != nil {
 			return nil, err
 		}
@@ -105,7 +98,6 @@ func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerReque
 			LastHeartbeat:    now,
 			RegisteredAt:     now,
 			Status:           store.StatusActive,
-			APIKeyHash:       keyHash,
 		}
 		if _, err := r.store.Create(ctx, rec); err != nil {
 			return nil, err
@@ -113,7 +105,7 @@ func (r *IndexerRegistry) Register(ctx context.Context, req RegisterIndexerReque
 		r.log.Infow("indexer registered", "peer_id", req.PeerID, "chain", req.Chain, "network", req.Network)
 	}
 
-	return &RegisterIndexerResponse{PeerID: req.PeerID, APIKey: plainKey, HeartbeatIntervalSeconds: r.heartbeatIntervalSeconds}, nil
+	return &RegisterIndexerResponse{PeerID: req.PeerID, HeartbeatIntervalSeconds: r.heartbeatIntervalSeconds}, nil
 }
 
 func (r *IndexerRegistry) Heartbeat(ctx context.Context, peerID string, req HeartbeatRequest) error {
@@ -148,8 +140,10 @@ func (r *IndexerRegistry) Deregister(ctx context.Context, peerID string) error {
 	return nil
 }
 
-func (r *IndexerRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*store.IndexerRecord, error) {
-	peerID, err := auth.ExtractPeerID(apiKey)
+// VerifyRequest authenticates a per-request Bearer token by looking up the
+// indexer's stored secp256k1 public key and verifying the token signature.
+func (r *IndexerRegistry) VerifyRequest(ctx context.Context, token string) (*store.IndexerRecord, error) {
+	peerID, err := auth.ExtractPeerID(token)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +154,7 @@ func (r *IndexerRegistry) VerifyAPIKey(ctx context.Context, apiKey string) (*sto
 	if rec == nil {
 		return nil, fmt.Errorf("indexer not found")
 	}
-	if err := r.verifier.VerifyAPIKey(apiKey, rec.APIKeyHash); err != nil {
+	if _, err := r.verifier.VerifyRequestToken(rec.DefraPK, token); err != nil {
 		return nil, err
 	}
 	return rec, nil

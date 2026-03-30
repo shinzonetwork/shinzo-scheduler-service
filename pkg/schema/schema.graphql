@@ -12,7 +12,6 @@ type Scheduler__Indexer {
     lastHeartbeat: String
     registeredAt: String
     status: String @index
-    apiKeyHash: String
 }
 
 type Scheduler__Host {
@@ -25,7 +24,6 @@ type Scheduler__Host {
     lastHeartbeat: String
     registeredAt: String
     status: String @index
-    apiKeyHash: String
     budget: String
 }
 

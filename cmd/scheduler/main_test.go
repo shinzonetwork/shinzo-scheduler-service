@@ -56,7 +56,6 @@ func testConfig(t *testing.T) *config.Config {
 				MaxConcurrentProbes:      5,
 				HeartbeatIntervalSeconds: 30,
 			},
-			Auth: config.AuthConfig{HMACSecret: "test-hmac-secret"},
 			Diversity: config.DiversityConfig{
 				Enabled:            true,
 				RecencyWindowHours: 24,

@@ -13,7 +13,7 @@ import (
 
 type hostRegistry interface {
 	Register(ctx context.Context, req registry.RegisterHostRequest) (*registry.RegisterHostResponse, error)
-	VerifyAPIKey(ctx context.Context, apiKey string) (*store.HostRecord, error)
+	VerifyRequest(ctx context.Context, token string) (*store.HostRecord, error)
 	Heartbeat(ctx context.Context, peerID string) error
 	Deregister(ctx context.Context, peerID string) error
 }
@@ -48,8 +48,8 @@ func (h *HostHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *HostHandler) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	peerID := mux.Vars(r)["id"]
 
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	rec, err := h.reg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	rec, err := h.reg.VerifyRequest(r.Context(), token)
 	if err != nil || rec.PeerID != peerID {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
@@ -65,8 +65,8 @@ func (h *HostHandler) Heartbeat(w http.ResponseWriter, r *http.Request) {
 func (h *HostHandler) Get(w http.ResponseWriter, r *http.Request) {
 	peerID := mux.Vars(r)["id"]
 
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	rec, err := h.reg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	rec, err := h.reg.VerifyRequest(r.Context(), token)
 	if err != nil || rec.PeerID != peerID {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
@@ -81,15 +81,14 @@ func (h *HostHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "host not found")
 		return
 	}
-	hostRec.APIKeyHash = ""
 	writeJSON(w, http.StatusOK, hostRec)
 }
 
 func (h *HostHandler) Deregister(w http.ResponseWriter, r *http.Request) {
 	peerID := mux.Vars(r)["id"]
 
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	rec, err := h.reg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	rec, err := h.reg.VerifyRequest(r.Context(), token)
 	if err != nil || rec.PeerID != peerID {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return

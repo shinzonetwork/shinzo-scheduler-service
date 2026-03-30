@@ -16,7 +16,6 @@ type IndexerRecord struct {
 	LastHeartbeat    string  `json:"lastHeartbeat"` // RFC3339
 	RegisteredAt     string  `json:"registeredAt"`
 	Status           string  `json:"status"`
-	APIKeyHash       string  `json:"apiKeyHash"`
 }
 
 type HostRecord struct {
@@ -30,7 +29,6 @@ type HostRecord struct {
 	LastHeartbeat string `json:"lastHeartbeat"`
 	RegisteredAt  string `json:"registeredAt"`
 	Status        string `json:"status"`
-	APIKeyHash    string `json:"apiKeyHash"`
 	Budget        string `json:"budget"` // JSON: HostBudget
 }
 

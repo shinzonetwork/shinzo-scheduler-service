@@ -90,14 +90,8 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 
 	// Seed bootstrap peers.
 	sc := cfg.Scheduler
-	bootstrapVerifier := auth.NewVerifier(sc.Auth.HMACSecret)
 	for _, bi := range sc.Bootstrap.Indexers {
 		if existing, _ := indexerSt.GetByPeerID(ctx, bi.PeerID); existing != nil {
-			continue
-		}
-		_, keyHash, err := bootstrapVerifier.IssueAPIKey(bi.PeerID)
-		if err != nil {
-			log.Warnf("bootstrap peer %s: issue key: %v", bi.PeerID, err)
 			continue
 		}
 		now := time.Now().UTC().Format(time.RFC3339)
@@ -112,7 +106,6 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 			LastHeartbeat:    now,
 			RegisteredAt:     now,
 			Status:           store.StatusActive,
-			APIKeyHash:       keyHash,
 		}); err != nil {
 			log.Warnf("bootstrap peer %s: create record: %v", bi.PeerID, err)
 			continue
@@ -121,7 +114,7 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 	}
 
 	// Wire auth + registries.
-	verifier := auth.NewVerifier(sc.Auth.HMACSecret)
+	verifier := auth.NewVerifier()
 	heartbeatInterval := sc.Probe.HeartbeatIntervalSeconds
 	indexerReg := registry.NewIndexerRegistry(indexerSt, verifier, log, sc.Chain, sc.Network, heartbeatInterval)
 	hostReg := registry.NewHostRegistry(hostSt, verifier, log, sc.Chain, sc.Network, heartbeatInterval)
@@ -148,7 +141,6 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 	paymentH.WithFloorPricing(sc.Pricing.FloorTipPer1kBlocks, sc.Pricing.FloorSnapshotPerRange)
 	healthH := handlers.NewHealthHandler(indexerSt, hostSt, subSt)
 	metricsH := handlers.NewMetricsHandler(indexerSt, hostSt, subSt, probeSt, log)
-	authH := handlers.NewAuthHandler(verifier, indexerSt, hostSt, log)
 
 	// Start background workers.
 	prober.Start(ctx)
@@ -219,7 +211,7 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 
 	srv := api.NewServer(
 		sc.Server,
-		indexerH, hostH, discoveryH, subscriptionH, paymentH, healthH, metricsH, authH,
+		indexerH, hostH, discoveryH, subscriptionH, paymentH, healthH, metricsH,
 		accountingH, settlementH,
 		log,
 	)

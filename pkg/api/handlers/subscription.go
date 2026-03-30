@@ -20,7 +20,7 @@ type subscriptionManager interface {
 }
 
 type hostVerifier interface {
-	VerifyAPIKey(ctx context.Context, apiKey string) (*store.HostRecord, error)
+	VerifyRequest(ctx context.Context, token string) (*store.HostRecord, error)
 }
 
 type SubscriptionHandler struct {
@@ -131,6 +131,6 @@ func (h *SubscriptionHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscriptionHandler) authHost(r *http.Request) (*store.HostRecord, error) {
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	return h.hostReg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	return h.hostReg.VerifyRequest(r.Context(), token)
 }

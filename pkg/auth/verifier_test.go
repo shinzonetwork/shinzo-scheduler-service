@@ -3,8 +3,9 @@ package auth
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"strings"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
@@ -13,10 +14,9 @@ import (
 )
 
 func newTestVerifier() *Verifier {
-	return NewVerifier("test-hmac-secret-32-bytes-long!!")
+	return NewVerifier()
 }
 
-// generateKeypair creates a fresh secp256k1 keypair for use in tests.
 func generateKeypair(t *testing.T) (*secp256k1.PrivateKey, string) {
 	t.Helper()
 	priv, err := secp256k1.GeneratePrivateKey()
@@ -25,64 +25,16 @@ func generateKeypair(t *testing.T) (*secp256k1.PrivateKey, string) {
 	return priv, pubHex
 }
 
-// signMsg returns a DER-encoded signature over SHA256(msgBytes) as a hex string.
 func signMsg(priv *secp256k1.PrivateKey, msgBytes []byte) string {
 	hash := sha256.Sum256(msgBytes)
 	sig := ecdsa.Sign(priv, hash[:])
 	return hex.EncodeToString(sig.Serialize())
 }
 
-func TestIssueAPIKey(t *testing.T) {
-	v := newTestVerifier()
-
-	t.Run("format", func(t *testing.T) {
-		key, hash, err := v.IssueAPIKey("peer1")
-		require.NoError(t, err)
-		parts := strings.SplitN(key, ".", 3)
-		assert.Len(t, parts, 3, "key must have peerID.timestamp.random structure")
-		assert.Equal(t, "peer1", parts[0])
-		assert.NotEmpty(t, hash)
-	})
-
-	t.Run("uniqueness", func(t *testing.T) {
-		k1, h1, _ := v.IssueAPIKey("peer1")
-		k2, h2, _ := v.IssueAPIKey("peer1")
-		assert.NotEqual(t, k1, k2)
-		assert.NotEqual(t, h1, h2)
-	})
-}
-
-func TestVerifyAPIKey(t *testing.T) {
-	v := newTestVerifier()
-	plain, hash, err := v.IssueAPIKey("peer1")
-	require.NoError(t, err)
-
-	t.Run("valid", func(t *testing.T) {
-		assert.NoError(t, v.VerifyAPIKey(plain, hash))
-	})
-
-	t.Run("wrong key", func(t *testing.T) {
-		assert.Error(t, v.VerifyAPIKey("wrong.key.value", hash))
-	})
-
-	t.Run("tampered", func(t *testing.T) {
-		tampered := plain + "x"
-		assert.Error(t, v.VerifyAPIKey(tampered, hash))
-	})
-
-	t.Run("different secret", func(t *testing.T) {
-		other := NewVerifier("other-secret")
-		assert.Error(t, other.VerifyAPIKey(plain, hash))
-	})
-}
-
 func TestExtractPeerID(t *testing.T) {
-	v := newTestVerifier()
-
 	t.Run("happy path", func(t *testing.T) {
-		plain, _, err := v.IssueAPIKey("myPeer")
-		require.NoError(t, err)
-		id, err := ExtractPeerID(plain)
+		token := "myPeer.1234567890.deadsig"
+		id, err := ExtractPeerID(token)
 		require.NoError(t, err)
 		assert.Equal(t, "myPeer", id)
 	})
@@ -94,6 +46,63 @@ func TestExtractPeerID(t *testing.T) {
 
 	t.Run("one dot", func(t *testing.T) {
 		_, err := ExtractPeerID("only.one")
+		assert.Error(t, err)
+	})
+}
+
+func TestVerifyRequestToken(t *testing.T) {
+	v := newTestVerifier()
+	priv, pubHex := generateKeypair(t)
+	peerID := "QmTestPeer"
+
+	t.Run("valid", func(t *testing.T) {
+		token := GenerateToken(priv, peerID)
+		got, err := v.VerifyRequestToken(pubHex, token)
+		require.NoError(t, err)
+		assert.Equal(t, peerID, got)
+	})
+
+	t.Run("expired timestamp", func(t *testing.T) {
+		ts := strconv.FormatInt(time.Now().Unix()-120, 10)
+		msg := peerID + "." + ts
+		hash := sha256.Sum256([]byte(msg))
+		sig := ecdsa.Sign(priv, hash[:])
+		token := peerID + "." + ts + "." + hex.EncodeToString(sig.Serialize())
+		_, err := v.VerifyRequestToken(pubHex, token)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "expired")
+	})
+
+	t.Run("future timestamp", func(t *testing.T) {
+		ts := strconv.FormatInt(time.Now().Unix()+120, 10)
+		msg := peerID + "." + ts
+		hash := sha256.Sum256([]byte(msg))
+		sig := ecdsa.Sign(priv, hash[:])
+		token := peerID + "." + ts + "." + hex.EncodeToString(sig.Serialize())
+		_, err := v.VerifyRequestToken(pubHex, token)
+		assert.Error(t, err)
+	})
+
+	t.Run("wrong signature", func(t *testing.T) {
+		otherPriv, _ := generateKeypair(t)
+		token := GenerateToken(otherPriv, peerID)
+		_, err := v.VerifyRequestToken(pubHex, token)
+		assert.Error(t, err)
+	})
+
+	t.Run("malformed token", func(t *testing.T) {
+		_, err := v.VerifyRequestToken(pubHex, "notavalidtoken")
+		assert.Error(t, err)
+	})
+
+	t.Run("invalid timestamp", func(t *testing.T) {
+		_, err := v.VerifyRequestToken(pubHex, "peer.notanumber.deadsig")
+		assert.Error(t, err)
+	})
+
+	t.Run("bad pubkey hex", func(t *testing.T) {
+		token := GenerateToken(priv, peerID)
+		_, err := v.VerifyRequestToken("not-hex", token)
 		assert.Error(t, err)
 	})
 }
@@ -156,7 +165,6 @@ func TestVerifySignature_InvalidDERSignature(t *testing.T) {
 	_, pubHex := generateKeypair(t)
 	msg := []byte("hello")
 	msgHex := hex.EncodeToString(msg)
-	// Valid hex but not valid DER signature.
 	err := v.VerifySignature(pubHex, msgHex, hex.EncodeToString([]byte("not-a-der-sig")))
 	assert.Error(t, err)
 }

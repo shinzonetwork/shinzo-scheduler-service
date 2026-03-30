@@ -70,9 +70,6 @@ func (m *mockIndexerStore) Update(_ context.Context, docID string, fields map[st
 			if v, ok := fields["status"]; ok {
 				r.Status = v.(string)
 			}
-			if v, ok := fields["apiKeyHash"]; ok {
-				r.APIKeyHash = v.(string)
-			}
 			if v, ok := fields["currentTip"]; ok {
 				r.CurrentTip = v.(int)
 			}
@@ -138,9 +135,6 @@ func (m *mockHostStore) Update(_ context.Context, docID string, fields map[strin
 			if v, ok := fields["status"]; ok {
 				r.Status = v.(string)
 			}
-			if v, ok := fields["apiKeyHash"]; ok {
-				r.APIKeyHash = v.(string)
-			}
 			if v, ok := fields["lastHeartbeat"]; ok {
 				r.LastHeartbeat = v.(string)
 			}
@@ -171,7 +165,7 @@ func signedMessages(priv *secp256k1.PrivateKey, peerID string) map[string]string
 }
 
 func newTestVerifier() *auth.Verifier {
-	return auth.NewVerifier("test-hmac-secret-32-bytes-long!!")
+	return auth.NewVerifier()
 }
 
 func newSugaredLogger(t *testing.T) *zap.SugaredLogger {
@@ -201,14 +195,12 @@ func TestIndexerRegistry_Register(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, peerID, resp.PeerID)
-	assert.NotEmpty(t, resp.APIKey)
 
 	// Record should be in store
 	rec, err := st.GetByPeerID(context.Background(), peerID)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	assert.Equal(t, store.StatusActive, rec.Status)
-	assert.NotEmpty(t, rec.APIKeyHash)
 }
 
 func TestIndexerRegistry_Register_ReRegistration(t *testing.T) {
@@ -334,26 +326,29 @@ func TestIndexerRegistry_Deregister(t *testing.T) {
 	assert.Equal(t, store.StatusInactive, rec.Status)
 }
 
-func TestIndexerRegistry_VerifyAPIKey(t *testing.T) {
+func TestIndexerRegistry_VerifyRequest(t *testing.T) {
 	priv, pubHex := generateTestKeypair(t)
 	peerID := "Qm" + pubHex[:8]
 	st := newMockIndexerStore()
-	v := newTestVerifier()
-	reg := NewIndexerRegistry(st, v, newSugaredLogger(t), "eth", "mainnet", 30)
+	reg := NewIndexerRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
 
-	resp, _ := reg.Register(context.Background(), RegisterIndexerRequest{
+	_, err := reg.Register(context.Background(), RegisterIndexerRequest{
 		PeerID: peerID, DefraPK: pubHex,
 		SignedMessages: signedMessages(priv, peerID),
 		HTTPUrl:        "http://localhost:8080",
 		Multiaddr:      "/ip4/127.0.0.1/tcp/4001",
 		Chain:          "eth", Network: "mainnet",
 	})
+	require.NoError(t, err)
 
-	rec, err := reg.VerifyAPIKey(context.Background(), resp.APIKey)
+	token := auth.GenerateToken(priv, peerID)
+	rec, err := reg.VerifyRequest(context.Background(), token)
 	require.NoError(t, err)
 	assert.Equal(t, peerID, rec.PeerID)
 
-	_, err = reg.VerifyAPIKey(context.Background(), "wrong.key.here")
+	otherPriv, _ := generateTestKeypair(t)
+	badToken := auth.GenerateToken(otherPriv, peerID)
+	_, err = reg.VerifyRequest(context.Background(), badToken)
 	assert.Error(t, err)
 }
 
@@ -396,7 +391,6 @@ func TestHostRegistry_Register(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, peerID, resp.PeerID)
-	assert.NotEmpty(t, resp.APIKey)
 }
 
 func TestHostRegistry_Heartbeat(t *testing.T) {
@@ -443,25 +437,29 @@ func TestHostRegistry_Deregister(t *testing.T) {
 	assert.Equal(t, store.StatusInactive, rec.Status)
 }
 
-func TestHostRegistry_VerifyAPIKey(t *testing.T) {
+func TestHostRegistry_VerifyRequest(t *testing.T) {
 	priv, pubHex := generateTestKeypair(t)
 	peerID := "Qm" + pubHex[:8]
 	st := newMockHostStore()
 	reg := NewHostRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
 
-	resp, _ := reg.Register(context.Background(), RegisterHostRequest{
+	_, err := reg.Register(context.Background(), RegisterHostRequest{
 		PeerID: peerID, DefraPK: pubHex,
 		SignedMessages: signedMessages(priv, peerID),
 		HTTPUrl:        "http://localhost:9090",
 		Multiaddr:      "/ip4/127.0.0.1/tcp/5001",
 		Chain:          "eth", Network: "mainnet",
 	})
+	require.NoError(t, err)
 
-	rec, err := reg.VerifyAPIKey(context.Background(), resp.APIKey)
+	token := auth.GenerateToken(priv, peerID)
+	rec, err := reg.VerifyRequest(context.Background(), token)
 	require.NoError(t, err)
 	assert.Equal(t, peerID, rec.PeerID)
 
-	_, err = reg.VerifyAPIKey(context.Background(), "bad.key.val")
+	otherPriv, _ := generateTestKeypair(t)
+	badToken := auth.GenerateToken(otherPriv, peerID)
+	_, err = reg.VerifyRequest(context.Background(), badToken)
 	assert.Error(t, err)
 }
 
@@ -531,33 +529,33 @@ func TestIndexerRegistry_Deregister_UpdateError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestIndexerRegistry_VerifyAPIKey_ExtractError(t *testing.T) {
+func TestIndexerRegistry_VerifyRequest_ExtractError(t *testing.T) {
 	reg := NewIndexerRegistry(newMockIndexerStore(), newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "nodots")
+	_, err := reg.VerifyRequest(context.Background(), "nodots")
 	assert.Error(t, err)
 }
 
-func TestIndexerRegistry_VerifyAPIKey_NotFound(t *testing.T) {
+func TestIndexerRegistry_VerifyRequest_NotFound(t *testing.T) {
 	reg := NewIndexerRegistry(newMockIndexerStore(), newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "unknown.ts.sig")
+	_, err := reg.VerifyRequest(context.Background(), "unknown.ts.sig")
 	assert.Error(t, err)
 }
 
-func TestIndexerRegistry_VerifyAPIKey_StoreError(t *testing.T) {
+func TestIndexerRegistry_VerifyRequest_StoreError(t *testing.T) {
 	st := &mockIndexerStore{records: make(map[string]*store.IndexerRecord), err: fmt.Errorf("db down")}
 	reg := NewIndexerRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "peer1.ts.sig")
+	_, err := reg.VerifyRequest(context.Background(), "peer1.ts.sig")
 	assert.Error(t, err)
 }
 
-func TestIndexerRegistry_VerifyAPIKey_HashMismatch(t *testing.T) {
+func TestIndexerRegistry_VerifyRequest_HashMismatch(t *testing.T) {
 	priv, pubHex := generateTestKeypair(t)
 	peerID := "Qm" + pubHex[:8]
 	st := newMockIndexerStore()
 	reg := NewIndexerRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
 	_, _ = reg.Register(context.Background(), indexerRegRequest(priv, pubHex, peerID))
 	// Fabricate a key with the right peerID prefix but wrong signature.
-	_, err := reg.VerifyAPIKey(context.Background(), peerID+".ts.badsig")
+	_, err := reg.VerifyRequest(context.Background(), peerID+".ts.badsig")
 	assert.Error(t, err)
 }
 
@@ -686,32 +684,32 @@ func TestHostRegistry_Deregister_UpdateError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestHostRegistry_VerifyAPIKey_ExtractError(t *testing.T) {
+func TestHostRegistry_VerifyRequest_ExtractError(t *testing.T) {
 	reg := NewHostRegistry(newMockHostStore(), newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "nodots")
+	_, err := reg.VerifyRequest(context.Background(), "nodots")
 	assert.Error(t, err)
 }
 
-func TestHostRegistry_VerifyAPIKey_NotFound(t *testing.T) {
+func TestHostRegistry_VerifyRequest_NotFound(t *testing.T) {
 	reg := NewHostRegistry(newMockHostStore(), newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "unknown.ts.sig")
+	_, err := reg.VerifyRequest(context.Background(), "unknown.ts.sig")
 	assert.Error(t, err)
 }
 
-func TestHostRegistry_VerifyAPIKey_StoreError(t *testing.T) {
+func TestHostRegistry_VerifyRequest_StoreError(t *testing.T) {
 	st := &mockHostStore{records: make(map[string]*store.HostRecord), err: fmt.Errorf("db down")}
 	reg := NewHostRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
-	_, err := reg.VerifyAPIKey(context.Background(), "peer1.ts.sig")
+	_, err := reg.VerifyRequest(context.Background(), "peer1.ts.sig")
 	assert.Error(t, err)
 }
 
-func TestHostRegistry_VerifyAPIKey_HashMismatch(t *testing.T) {
+func TestHostRegistry_VerifyRequest_HashMismatch(t *testing.T) {
 	priv, pubHex := generateTestKeypair(t)
 	peerID := "Qm" + pubHex[:8]
 	st := newMockHostStore()
 	reg := NewHostRegistry(st, newTestVerifier(), newSugaredLogger(t), "eth", "mainnet", 30)
 	_, _ = reg.Register(context.Background(), hostRegRequest(priv, pubHex, peerID))
-	_, err := reg.VerifyAPIKey(context.Background(), peerID+".ts.badsig")
+	_, err := reg.VerifyRequest(context.Background(), peerID+".ts.badsig")
 	assert.Error(t, err)
 }
 

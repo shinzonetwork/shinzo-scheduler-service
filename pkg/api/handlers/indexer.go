@@ -13,7 +13,7 @@ import (
 
 type indexerRegistry interface {
 	Register(ctx context.Context, req registry.RegisterIndexerRequest) (*registry.RegisterIndexerResponse, error)
-	VerifyAPIKey(ctx context.Context, apiKey string) (*store.IndexerRecord, error)
+	VerifyRequest(ctx context.Context, token string) (*store.IndexerRecord, error)
 	Heartbeat(ctx context.Context, peerID string, req registry.HeartbeatRequest) error
 	Deregister(ctx context.Context, peerID string) error
 }
@@ -49,9 +49,8 @@ func (h *IndexerHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *IndexerHandler) Heartbeat(w http.ResponseWriter, r *http.Request) {
 	peerID := mux.Vars(r)["id"]
 
-	// Authenticate: the API key must belong to this peer ID.
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	rec, err := h.reg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	rec, err := h.reg.VerifyRequest(r.Context(), token)
 	if err != nil || rec.PeerID != peerID {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
@@ -80,16 +79,14 @@ func (h *IndexerHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "indexer not found")
 		return
 	}
-	// Omit the api key hash from the public response.
-	rec.APIKeyHash = ""
 	writeJSON(w, http.StatusOK, rec)
 }
 
 func (h *IndexerHandler) Deregister(w http.ResponseWriter, r *http.Request) {
 	peerID := mux.Vars(r)["id"]
 
-	apiKey := middleware.APIKeyFromContext(r.Context())
-	rec, err := h.reg.VerifyAPIKey(r.Context(), apiKey)
+	token := middleware.APIKeyFromContext(r.Context())
+	rec, err := h.reg.VerifyRequest(r.Context(), token)
 	if err != nil || rec.PeerID != peerID {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
