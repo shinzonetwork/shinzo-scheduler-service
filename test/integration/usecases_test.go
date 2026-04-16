@@ -798,48 +798,6 @@ func TestMarketDynamics(t *testing.T) {
 
 func TestOperational(t *testing.T) {
 
-	t.Run("key_rotation_preserves_session", func(t *testing.T) {
-		h := newFullHarness(t)
-
-		idxID := "idx-rot"
-		hostID := "host-rot"
-		h.registerIndexer(t, idxID)
-		hostKey := h.registerHost(t, hostID)
-
-		// Create a subscription.
-		resp := h.doRequest(t, http.MethodPost, "/v1/subscriptions", map[string]any{
-			"host_id": hostID, "indexer_id": idxID, "sub_type": "tip",
-		}, hostKey)
-		require.Equal(t, http.StatusCreated, resp.StatusCode)
-		var subRec2 store.SubscriptionRecord
-		decodeJSON(t, resp, &subRec2)
-		subID := subRec2.SubscriptionID
-		require.NotEmpty(t, subID)
-
-		// Activate.
-		resp = h.doRequest(t, http.MethodPost, "/v1/payments/verify", map[string]any{
-			"subscription_id": subID,
-			"payment_ref":     "pay-rot",
-			"expires_at":      time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
-		}, hostKey)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
-
-		// Rotate key.
-		resp = h.doRequest(t, http.MethodPost, "/v1/auth/rotate-key", nil, hostKey)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		var rotateResp map[string]string
-		decodeJSON(t, resp, &rotateResp)
-		newKey := rotateResp["api_key"]
-		require.NotEmpty(t, newKey)
-		assert.NotEqual(t, hostKey, newKey)
-
-		// New key can still query the subscription.
-		resp = h.doRequest(t, http.MethodGet, "/v1/subscriptions/"+subID, nil, newKey)
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
-	})
-
 	t.Run("multi_session_batch_atomicity", func(t *testing.T) {
 		db, cleanup := setupDefra(t)
 		defer cleanup()

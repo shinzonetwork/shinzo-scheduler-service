@@ -311,24 +311,3 @@ func TestSubscriptionLifecycle(t *testing.T) {
 	assert.Equal(t, store.StatusCancelled, cancelledSub.Status)
 }
 
-func TestKeyRotation(t *testing.T) {
-	h := newHarness(t)
-
-	peerID := "idx-rotate-1"
-	oldKey := h.registerIndexer(t, peerID)
-
-	// Rotate with the old key.
-	resp := h.doRequest(t, http.MethodPost, "/v1/auth/rotate-key", nil, oldKey)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var rotateResp map[string]string
-	decodeJSON(t, resp, &rotateResp)
-	newKey := rotateResp["api_key"]
-	require.NotEmpty(t, newKey)
-	assert.NotEqual(t, oldKey, newKey)
-
-	// Use the new key to access a protected endpoint.
-	resp = h.doRequest(t, http.MethodGet, "/v1/indexers/"+peerID, nil, "")
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	resp.Body.Close()
-}

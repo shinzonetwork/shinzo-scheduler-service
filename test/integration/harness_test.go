@@ -489,7 +489,7 @@ func (h *testHarness) setupSession(t *testing.T, hostKey, indexerKey, hostID, in
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	var subResp map[string]any
 	decodeJSON(t, resp, &subResp)
-	subID := subResp["subscription_id"].(string)
+	subID := subResp["subscriptionId"].(string)
 
 	// Activate via payment verify.
 	resp = h.doRequest(t, "POST", "/v1/payments/verify", map[string]any{
