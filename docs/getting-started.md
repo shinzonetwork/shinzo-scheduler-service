@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Go 1.21+** — [install](https://golang.org/dl/)
+- **Go 1.25.5+** — [install](https://golang.org/dl/)
 - **Docker** (optional) — for containerised deployments
 - **curl** — for manual API testing
 
@@ -22,14 +22,12 @@ The minimum required settings:
 |---|---|---|
 | Chain identifier | `scheduler.chain` | `SCHEDULER_CHAIN` |
 | Network identifier | `scheduler.network` | `SCHEDULER_NETWORK` |
-| HMAC secret | `scheduler.auth.hmac_secret` | `SCHEDULER_HMAC_SECRET` |
 | DefraDB keyring | `defradb.keyring_secret` | `DEFRA_KEYRING_SECRET` |
 
 Environment variables override the config file values. For local development the env vars approach is the simplest:
 
 ```bash
 export DEFRA_KEYRING_SECRET=dev-secret
-export SCHEDULER_HMAC_SECRET=dev-secret
 export SCHEDULER_CHAIN=ethereum
 export SCHEDULER_NETWORK=testnet
 ```
@@ -51,7 +49,6 @@ Key optional settings (defaults are shown in [config/config.yaml](../config/conf
 
 ```bash
 DEFRA_KEYRING_SECRET=dev-secret \
-SCHEDULER_HMAC_SECRET=dev-secret \
 SCHEDULER_CHAIN=ethereum \
 SCHEDULER_NETWORK=testnet \
   go run ./cmd/scheduler --config config/config.yaml
@@ -66,7 +63,6 @@ docker build -t shinzo-scheduler .
 
 docker run -p 8090:8090 \
   -e DEFRA_KEYRING_SECRET=dev-secret \
-  -e SCHEDULER_HMAC_SECRET=dev-secret \
   -e SCHEDULER_CHAIN=ethereum \
   -e SCHEDULER_NETWORK=testnet \
   shinzo-scheduler
@@ -76,7 +72,6 @@ docker run -p 8090:8090 \
 
 ```bash
 DEFRA_KEYRING_SECRET=dev-secret \
-SCHEDULER_HMAC_SECRET=dev-secret \
 SCHEDULER_CHAIN=ethereum \
 SCHEDULER_NETWORK=testnet \
   docker compose up
@@ -167,9 +162,10 @@ scheduler:
         multiaddr: "/ip4/1.2.3.4/tcp/9000/p2p/QmYourIndexerPeerID"
 ```
 
-The scheduler logs the issued API key for each bootstrap peer at startup:
-```
-bootstrap indexer seeded: peer_id=QmYourIndexerPeerID api_key=QmYourIndexerPeerID.20240101T000000Z.abc123...
+The scheduler logs each bootstrap peer at startup:
+
+```text
+bootstrap indexer seeded: peer_id=QmYourIndexerPeerID
 ```
 
 ## Next steps

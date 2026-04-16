@@ -15,6 +15,11 @@ BASE="${SCHEDULER_BASE_URL:-http://localhost:8090}"
 CHAIN="${SCHEDULER_CHAIN:-ethereum}"
 NETWORK="${SCHEDULER_NETWORK:-testnet}"
 
+# gen_token PRIVATE_KEY PEER_ID — generate a per-request auth token.
+gen_token() {
+  go run ./docs/scripts/gen-auth-token --private-key "$1" --peer-id "$2"
+}
+
 echo "==> Checking scheduler health..."
 curl -sf "$BASE/v1/health" | jq .
 
@@ -22,6 +27,7 @@ echo ""
 echo "==> Generating indexer identity..."
 INDEXER_IDENTITY=$(go run ./docs/scripts/gen-peer-identity)
 INDEXER_PEER_ID=$(echo "$INDEXER_IDENTITY" | jq -r '.peer_id')
+INDEXER_PRIV=$(echo "$INDEXER_IDENTITY" | jq -r '.private_key')
 echo "    peer_id: $INDEXER_PEER_ID"
 
 echo ""
@@ -42,12 +48,11 @@ INDEXER_RESP=$(curl -sf -X POST "$BASE/v1/indexers/register" \
   -d "$INDEXER_REG")
 
 echo "$INDEXER_RESP" | jq .
-INDEXER_API_KEY=$(echo "$INDEXER_RESP" | jq -r '.api_key')
 
 echo ""
 echo "==> Sending indexer heartbeat (tip=19500000)..."
 curl -sf -X POST "$BASE/v1/indexers/$INDEXER_PEER_ID/heartbeat" \
-  -H "Authorization: Bearer $INDEXER_API_KEY" \
+  -H "Authorization: Bearer $(gen_token "$INDEXER_PRIV" "$INDEXER_PEER_ID")" \
   -H 'Content-Type: application/json' \
   -d '{"current_tip": 19500000, "snapshot_ranges": "[]"}' | jq .
 
@@ -55,6 +60,7 @@ echo ""
 echo "==> Generating host identity..."
 HOST_IDENTITY=$(go run ./docs/scripts/gen-peer-identity)
 HOST_PEER_ID=$(echo "$HOST_IDENTITY" | jq -r '.peer_id')
+HOST_PRIV=$(echo "$HOST_IDENTITY" | jq -r '.private_key')
 echo "    peer_id: $HOST_PEER_ID"
 
 echo ""
@@ -74,13 +80,12 @@ HOST_RESP=$(curl -sf -X POST "$BASE/v1/hosts/register" \
   -d "$HOST_REG")
 
 echo "$HOST_RESP" | jq .
-HOST_API_KEY=$(echo "$HOST_RESP" | jq -r '.api_key')
 
 echo ""
 echo "==> Discovering indexers (host perspective)..."
 DISCOVERY=$(curl -sf \
   "$BASE/v1/discover/indexers?chain=$CHAIN&network=$NETWORK&host_id=$HOST_PEER_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY")
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")")
 echo "$DISCOVERY" | jq .
 
 DISCOVERED_INDEXER=$(echo "$DISCOVERY" | jq -r '.[0].peer_id // empty')
@@ -93,12 +98,12 @@ echo ""
 echo "==> Getting a price quote..."
 curl -sf \
   "$BASE/v1/quotes?indexer_id=$INDEXER_PEER_ID&type=tip&blocks=5000" \
-  -H "Authorization: Bearer $HOST_API_KEY" | jq .
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")" | jq .
 
 echo ""
 echo "==> Creating subscription..."
 SUB_RESP=$(curl -sf -X POST "$BASE/v1/subscriptions" \
-  -H "Authorization: Bearer $HOST_API_KEY" \
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")" \
   -H 'Content-Type: application/json' \
   -d "{\"indexer_id\": \"$INDEXER_PEER_ID\", \"sub_type\": \"tip\"}")
 
@@ -113,7 +118,7 @@ EXPIRES=$(date -u -d "+90 days" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
           date -u -v+90d +"%Y-%m-%dT%H:%M:%SZ")
 
 curl -sf -X POST "$BASE/v1/payments/verify" \
-  -H "Authorization: Bearer $HOST_API_KEY" \
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")" \
   -H 'Content-Type: application/json' \
   -d "{
     \"subscription_id\": \"$SUB_ID\",
@@ -124,14 +129,14 @@ curl -sf -X POST "$BASE/v1/payments/verify" \
 echo ""
 echo "==> Getting subscription (expect active + indexer multiaddr)..."
 SUB_DETAIL=$(curl -sf "$BASE/v1/subscriptions/$SUB_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY")
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")")
 echo "$SUB_DETAIL" | jq .
 echo "    status: $(echo "$SUB_DETAIL" | jq -r '.subscription.status')"
 
 echo ""
 echo "==> Cancelling subscription..."
 curl -sf -X DELETE "$BASE/v1/subscriptions/$SUB_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY" | jq .
+  -H "Authorization: Bearer $(gen_token "$HOST_PRIV" "$HOST_PEER_ID")" | jq .
 
 echo ""
 echo "==> Final health check..."

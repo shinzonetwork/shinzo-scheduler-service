@@ -7,7 +7,7 @@
 //
 // Output is JSON that can be merged with the rest of the registration body:
 //
-//	{"peer_id":"03...","defra_pk":"03...","signed_messages":{"<msg_hex>":"<sig_hex>"}}
+//	{"peer_id":"03...","defra_pk":"03...","private_key":"ab...","signed_messages":{"<msg_hex>":"<sig_hex>"}}
 package main
 
 import (
@@ -24,6 +24,7 @@ import (
 type identity struct {
 	PeerID         string            `json:"peer_id"`
 	DefraPK        string            `json:"defra_pk"`
+	PrivateKey     string            `json:"private_key"`
 	SignedMessages map[string]string `json:"signed_messages"`
 }
 
@@ -46,9 +47,12 @@ func main() {
 	sig := ecdsa.Sign(privKey, hash[:])
 	sigHex := hex.EncodeToString(sig.Serialize())
 
+	privKeyHex := hex.EncodeToString(privKey.Serialize())
+
 	out := identity{
-		PeerID:  peerID,
-		DefraPK: defraPK,
+		PeerID:     peerID,
+		DefraPK:    defraPK,
+		PrivateKey: privKeyHex,
 		SignedMessages: map[string]string{
 			msgHex: sigHex,
 		},

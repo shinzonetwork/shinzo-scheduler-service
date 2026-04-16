@@ -313,13 +313,15 @@ _INDEXER_BODY=$(jq -n \
   '{peer_id:$peer_id,defra_pk:$defra_pk,signed_messages:{($msg):$sig},http_url:$http_url,multiaddr:$multiaddr,chain:$chain,network:$network,pricing:$pricing}')
 INDEXER_RESP=$(post_json "$BASE/v1/indexers/register" "$_INDEXER_BODY")
 echo "$INDEXER_RESP" | jq .
-INDEXER_API_KEY=$(echo "$INDEXER_RESP" | jq -r '.api_key')
+# Auth tokens require the private key. Real binaries must expose a /token
+# endpoint that returns a signed Bearer token for scheduler auth.
+INDEXER_TOKEN=$(curl -sf "$INDEXER_URL/token" 2>/dev/null || echo "")
 
 echo ""
 echo "==> Sending indexer heartbeat..."
 CURRENT_TIP=$(curl -sf -H 'Accept: application/json' "$INDEXER_URL/health" | jq -r '.current_block // 0')
 curl -sf -X POST "$BASE/v1/indexers/$SCHEDULER_INDEXER_ID/heartbeat" \
-  -H "Authorization: Bearer $INDEXER_API_KEY" \
+  -H "Authorization: Bearer $INDEXER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d "{\"current_tip\": $CURRENT_TIP, \"snapshot_ranges\": \"[]\"}" | jq .
 echo "    reported tip: $CURRENT_TIP"
@@ -338,7 +340,7 @@ _HOST_BODY=$(jq -n \
   '{peer_id:$peer_id,defra_pk:$defra_pk,signed_messages:{($msg):$sig},http_url:$http_url,multiaddr:$multiaddr,chain:$chain,network:$network}')
 HOST_RESP=$(post_json "$BASE/v1/hosts/register" "$_HOST_BODY")
 echo "$HOST_RESP" | jq .
-HOST_API_KEY=$(echo "$HOST_RESP" | jq -r '.api_key')
+HOST_TOKEN=$(curl -sf "$HOST_URL/token" 2>/dev/null || echo "")
 
 # ---------------------------------------------------------------------------
 # Discover, subscribe, activate.
@@ -347,7 +349,7 @@ echo ""
 echo "==> Discovering indexers (host perspective)..."
 DISCOVERY=$(curl -sf \
   "$BASE/v1/discover/indexers?chain=$CHAIN&network=$NETWORK&host_id=$SCHEDULER_HOST_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY")
+  -H "Authorization: Bearer $HOST_TOKEN")
 echo "$DISCOVERY" | jq .
 
 DISCOVERED=$(echo "$DISCOVERY" | jq -r '.[0].peer_id // empty')
@@ -360,7 +362,7 @@ echo "    discovered: $DISCOVERED"
 echo ""
 echo "==> Creating subscription..."
 SUB_RESP=$(curl -sf -X POST "$BASE/v1/subscriptions" \
-  -H "Authorization: Bearer $HOST_API_KEY" \
+  -H "Authorization: Bearer $HOST_TOKEN" \
   -H 'Content-Type: application/json' \
   -d "{\"indexer_id\": \"$SCHEDULER_INDEXER_ID\", \"sub_type\": \"tip\"}")
 echo "$SUB_RESP" | jq .
@@ -373,7 +375,7 @@ EXPIRES=$(date -u -d "+90 days" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
           date -u -v+90d +"%Y-%m-%dT%H:%M:%SZ")
 
 curl -sf -X POST "$BASE/v1/payments/verify" \
-  -H "Authorization: Bearer $HOST_API_KEY" \
+  -H "Authorization: Bearer $HOST_TOKEN" \
   -H 'Content-Type: application/json' \
   -d "{
     \"subscription_id\": \"$SUB_ID\",
@@ -384,7 +386,7 @@ curl -sf -X POST "$BASE/v1/payments/verify" \
 echo ""
 echo "==> Verifying subscription is active with real connection details..."
 SUB_DETAIL=$(curl -sf "$BASE/v1/subscriptions/$SUB_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY")
+  -H "Authorization: Bearer $HOST_TOKEN")
 echo "$SUB_DETAIL" | jq .
 echo "    status:            $(echo "$SUB_DETAIL" | jq -r '.subscription.status')"
 echo "    indexer_http_url:  $(echo "$SUB_DETAIL" | jq -r '.indexer_http_url')"
@@ -417,7 +419,7 @@ echo "    final reliability_score: $RELIABILITY"
 echo ""
 echo "==> Cancelling subscription..."
 curl -sf -X DELETE "$BASE/v1/subscriptions/$SUB_ID" \
-  -H "Authorization: Bearer $HOST_API_KEY" | jq .
+  -H "Authorization: Bearer $HOST_TOKEN" | jq .
 
 echo ""
 echo "==> Final scheduler health:"

@@ -310,4 +310,3 @@ func TestSubscriptionLifecycle(t *testing.T) {
 	require.NoError(t, json.Unmarshal(getResp["subscription"], &cancelledSub))
 	assert.Equal(t, store.StatusCancelled, cancelledSub.Status)
 }
-

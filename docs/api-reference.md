@@ -4,13 +4,13 @@ Base URL: `http://localhost:8090`
 
 ## Authentication
 
-Authenticated endpoints require an API key issued at registration:
+Authenticated endpoints require a per-request Bearer token:
 
 ```
-Authorization: Bearer <api_key>
+Authorization: Bearer <peerID>.<unixTimestamp>.<signatureHex>
 ```
 
-The API key embeds the caller's peer ID and is verified via HMAC-SHA256.
+The token is a secp256k1 DER signature over `SHA256("peerID.unixTimestamp")`, using the private key corresponding to the `defra_pk` registered at sign-up. Tokens are valid for +/-60 seconds.
 
 ## Error responses
 
@@ -112,7 +112,7 @@ Registration requires a secp256k1 identity. Use [docs/scripts/gen-peer-identity]
 POST /v1/indexers/register
 ```
 
-Registers a new indexer. Returns a one-time API key — store it securely, it cannot be retrieved again.
+Registers a new indexer. Returns the registered peer ID and heartbeat interval.
 
 **Request body:**
 
@@ -145,7 +145,6 @@ curl -s -X POST http://localhost:8090/v1/indexers/register \
 ```json
 {
   "peer_id": "03a1b2c3...",
-  "api_key": "03a1b2c3....20240101T000000Z.abc123...",
   "heartbeat_interval_seconds": 30
 }
 ```
@@ -158,7 +157,7 @@ curl -s -X POST http://localhost:8090/v1/indexers/register \
 GET /v1/indexers/{id}
 ```
 
-Returns the indexer record (API key hash omitted).
+Returns the indexer record.
 
 ```bash
 curl http://localhost:8090/v1/indexers/03a1b2c3...
@@ -187,7 +186,7 @@ curl http://localhost:8090/v1/indexers/03a1b2c3...
 
 ```
 POST /v1/indexers/{id}/heartbeat
-Authorization: Bearer <indexer_api_key>
+Authorization: Bearer <token>
 ```
 
 Updates the indexer's current tip and snapshot list. Must be called before `staleness_window_seconds` elapses or the indexer is excluded from discovery.
@@ -216,7 +215,7 @@ curl -s -X POST http://localhost:8090/v1/indexers/03a1b2c3.../heartbeat \
 
 ```
 DELETE /v1/indexers/{id}
-Authorization: Bearer <indexer_api_key>
+Authorization: Bearer <token>
 ```
 
 Marks the indexer as inactive.
@@ -240,7 +239,7 @@ curl -s -X DELETE http://localhost:8090/v1/indexers/03a1b2c3... \
 POST /v1/hosts/register
 ```
 
-Registers a new host. Returns a one-time API key.
+Registers a new host. Returns the registered peer ID and heartbeat interval.
 
 **Request body:**
 
@@ -271,7 +270,6 @@ curl -s -X POST http://localhost:8090/v1/hosts/register \
 ```json
 {
   "peer_id": "02d4e5f6...",
-  "api_key": "02d4e5f6....20240101T000000Z.xyz789...",
   "heartbeat_interval_seconds": 30
 }
 ```
@@ -282,7 +280,7 @@ curl -s -X POST http://localhost:8090/v1/hosts/register \
 
 ```
 GET /v1/hosts/{id}
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Returns the host record. Only the owning host can retrieve it.
@@ -311,7 +309,7 @@ curl http://localhost:8090/v1/hosts/02d4e5f6... \
 
 ```
 POST /v1/hosts/{id}/heartbeat
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Updates host liveness timestamp.
@@ -333,7 +331,7 @@ curl -s -X POST http://localhost:8090/v1/hosts/02d4e5f6.../heartbeat \
 
 ```
 DELETE /v1/hosts/{id}
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 ```bash
@@ -355,7 +353,7 @@ All discovery endpoints require host authentication.
 
 ```
 GET /v1/discover/indexers
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Returns ranked indexers eligible for tip sessions.
@@ -397,7 +395,7 @@ curl -s "http://localhost:8090/v1/discover/indexers?chain=ethereum&network=testn
 
 ```
 GET /v1/discover/snapshots
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Returns ranked indexers that hold or can create a snapshot for the requested block range.
@@ -443,7 +441,7 @@ curl -s "http://localhost:8090/v1/discover/snapshots?chain=ethereum&network=test
 
 ```
 GET /v1/discover/match
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Routes to snapshot discovery if `block_from` and `block_to` are present; otherwise routes to tip discovery. Accepts the same parameters as both discovery endpoints.
@@ -466,7 +464,7 @@ curl -s "http://localhost:8090/v1/discover/match?chain=ethereum&network=testnet&
 
 ```
 POST /v1/subscriptions
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Creates a subscription in `pending` state. The subscription must be activated via `/v1/payments/verify` before the indexer's multiaddr is returned.
@@ -508,7 +506,7 @@ curl -s -X POST http://localhost:8090/v1/subscriptions \
 
 ```
 GET /v1/subscriptions
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Lists subscriptions belonging to the authenticated host.
@@ -539,7 +537,7 @@ curl -s http://localhost:8090/v1/subscriptions \
 
 ```
 GET /v1/subscriptions/{id}
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Returns a single subscription. When status is `active`, the response includes `indexer_multiaddr` and `indexer_http_url`.
@@ -571,7 +569,7 @@ curl -s http://localhost:8090/v1/subscriptions/7ea4091a-3523-4684-bb14-d874e03b9
 
 ```
 DELETE /v1/subscriptions/{id}
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Cancels a subscription (only the owning host can cancel).
@@ -593,7 +591,7 @@ curl -s -X DELETE http://localhost:8090/v1/subscriptions/7ea4091a-3523-4684-bb14
 
 ```
 GET /v1/quotes
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Calculates the price for a session based on the indexer's pricing configuration.
@@ -631,7 +629,7 @@ curl -s "http://localhost:8090/v1/quotes?indexer_id=03a1b2c3...&type=tip&blocks=
 
 ```
 POST /v1/payments/verify
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Activates a pending subscription. With ShinzoHub enabled, a `tx_hash` triggers on-chain verification against Tendermint RPC before activation. Without it, `payment_ref` is stored as a trust-based reference.
@@ -662,30 +660,6 @@ curl -s -X POST http://localhost:8090/v1/payments/verify \
 
 ---
 
-## Auth
-
-### Rotate key
-
-```
-POST /v1/auth/rotate-key
-Authorization: Bearer <current_api_key>
-```
-
-Issues a new API key, invalidating the previous one. Works for both indexers and hosts.
-
-```bash
-curl -s -X POST http://localhost:8090/v1/auth/rotate-key \
-  -H 'Authorization: Bearer 03a1b2c3....20240101T000000Z.abc123...'
-```
-
-```json
-{
-  "api_key": "03a1b2c3....20240102T090000Z.new456..."
-}
-```
-
----
-
 ## Accounting
 
 Accounting endpoints are only available when `scheduler.accounting.enabled: true`.
@@ -694,7 +668,7 @@ Accounting endpoints are only available when `scheduler.accounting.enabled: true
 
 ```
 POST /v1/claims
-Authorization: Bearer <indexer_api_key>
+Authorization: Bearer <token>
 ```
 
 Indexer asserts it delivered a specific block (identified by CID) to a session. Duplicate claims for the same (session, block) pair with different CIDs are rejected as fraud.
@@ -737,7 +711,7 @@ curl -s -X POST http://localhost:8090/v1/claims \
 
 ```
 POST /v1/attestations
-Authorization: Bearer <host_api_key>
+Authorization: Bearer <token>
 ```
 
 Host confirms receipt of a block for a session. Attestations are append-only.
@@ -780,7 +754,7 @@ curl -s -X POST http://localhost:8090/v1/attestations \
 
 ```
 GET /v1/sessions/{id}/ledger
-Authorization: Bearer <api_key>
+Authorization: Bearer <token>
 ```
 
 Returns the verified block count and remaining credit for a session.
@@ -804,7 +778,7 @@ curl -s http://localhost:8090/v1/sessions/bae-abc123.../ledger \
 
 ```
 GET /v1/sessions/{id}/comparisons
-Authorization: Bearer <api_key>
+Authorization: Bearer <token>
 ```
 
 Returns all claim-vs-attestation comparison outcomes for a session.
@@ -839,7 +813,7 @@ Settlement endpoints are only available when `scheduler.settlement.enabled: true
 
 ```
 GET /v1/escrow/{session_id}
-Authorization: Bearer <api_key>
+Authorization: Bearer <token>
 ```
 
 Returns the escrow balance and drain state for a session.
@@ -864,7 +838,7 @@ curl -s http://localhost:8090/v1/escrow/bae-abc123... \
 
 ```
 GET /v1/settlements/{session_id}
-Authorization: Bearer <api_key>
+Authorization: Bearer <token>
 ```
 
 Returns the batch settlement record for a session once finalized.
@@ -890,7 +864,7 @@ curl -s http://localhost:8090/v1/settlements/bae-abc123... \
 
 ```
 GET /v1/verdicts/{session_id}
-Authorization: Bearer <api_key>
+Authorization: Bearer <token>
 ```
 
 Returns the M-of-N signed verdict document for a session, if one has been produced.

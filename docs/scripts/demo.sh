@@ -3,8 +3,7 @@
 # Steps: start processes, register, discover, subscribe, activate, teardown.
 #
 # Requires: ./scheduler ./indexer ./host binaries, jq, GETH_RPC_URL, GETH_WS_URL.
-# Optional: SCHEDULER_CHAIN, SCHEDULER_NETWORK, SCHEDULER_HMAC_SECRET,
-#           DEFRADB_KEYRING_SECRET, GETH_API_KEY.
+# Optional: SCHEDULER_CHAIN, SCHEDULER_NETWORK, DEFRADB_KEYRING_SECRET, GETH_API_KEY.
 
 set -euo pipefail
 
@@ -198,8 +197,6 @@ CHAIN=$(ask "Chain"   "${SCHEDULER_CHAIN:-ethereum}")
 NETWORK=$(ask "Network" "${SCHEDULER_NETWORK:-mainnet}")
 echo ""
 
-HMAC="${SCHEDULER_HMAC_SECRET:-demo-hmac-$(date +%s)}"
-
 # ---------------------------------------------------------------------------
 # Step 1 — Start scheduler
 # ---------------------------------------------------------------------------
@@ -235,8 +232,6 @@ scheduler:
     probe_history_limit: 200
     max_concurrent_probes: 20
     heartbeat_interval_seconds: 30
-  auth:
-    hmac_secret: ""
   shinzohub:
     enabled: false
     epoch_size: 0
@@ -258,7 +253,6 @@ logger:
 EOF
 
 SCHEDULER_CHAIN="$CHAIN" SCHEDULER_NETWORK="$NETWORK" \
-  SCHEDULER_HMAC_SECRET="$HMAC" \
   DEFRA_KEYRING_SECRET="$KEYRING_SECRET" \
   ./scheduler --config "$SCHEDULER_DIR/config.yaml" > "$SCHEDULER_DIR/scheduler.log" 2>&1 &
 SCHEDULER_PID=$!
@@ -410,7 +404,9 @@ for i in $(seq 1 "$N_INDEXERS"); do
     --arg pricing   "$_pricing" \
     '{peer_id:$peer_id,defra_pk:$defra_pk,signed_messages:{($msg):$sig},http_url:$http_url,multiaddr:$multiaddr,chain:$chain,network:$network,pricing:$pricing}')
   resp=$(post_json "$BASE/v1/indexers/register" "$_body")
-  api_key=$(echo "$resp" | jq -r '.api_key')
+  # Auth tokens require the private key. Real binaries must expose a /token
+  # endpoint that returns a signed Bearer token for scheduler auth.
+  api_key=$(curl -sf "$url/token" 2>/dev/null || echo "")
   INDEXER_KEYS[$idx]="$api_key"
 
   tip=$(curl -sf -H 'Accept: application/json' "$url/health" | jq -r '.current_block // 0')
@@ -521,7 +517,7 @@ _host_body=$(jq -n \
   --arg network   "$NETWORK" \
   '{peer_id:$peer_id,defra_pk:$defra_pk,signed_messages:{($msg):$sig},http_url:$http_url,multiaddr:$multiaddr,chain:$chain,network:$network}')
 host_resp=$(post_json "$BASE/v1/hosts/register" "$_host_body")
-HOST_KEY=$(echo "$host_resp" | jq -r '.api_key')
+HOST_KEY=$(curl -sf "http://localhost:8092/token" 2>/dev/null || echo "")
 ok "host registered  id=$(short "$HOST_ID")"
 echo ""
 hints "curl -s http://localhost:8092/health | jq ." \
