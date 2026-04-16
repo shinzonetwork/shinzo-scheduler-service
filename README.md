@@ -16,7 +16,6 @@ go build -o scheduler ./cmd/scheduler
 # Configure minimum required env vars
 export SCHEDULER_CHAIN=ethereum
 export SCHEDULER_NETWORK=mainnet
-export SCHEDULER_HMAC_SECRET=your-secret
 export DEFRA_KEYRING_SECRET=your-keyring-secret
 
 # Run
@@ -44,8 +43,8 @@ All settings live in `config/config.yaml` and can be overridden with environment
 # Unit tests
 go test ./...
 
-# Integration tests (requires Docker)
-cd test && ./run_integration.sh
+# Integration tests
+bash test/run_integration.sh
 ```
 
 ## License
