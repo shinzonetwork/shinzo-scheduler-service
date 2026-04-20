@@ -189,25 +189,40 @@ POST /v1/indexers/{id}/heartbeat
 Authorization: Bearer <token>
 ```
 
-Updates the indexer's current tip and snapshot list. Must be called before `staleness_window_seconds` elapses or the indexer is excluded from discovery.
+Updates the indexer's current tip and snapshot list. Must be called at least once per `heartbeat_interval_seconds` (returned at registration); if the last heartbeat is older than `staleness_window_seconds` the indexer is excluded from discovery.
 
 **Request body:**
 
 | Field | Type | Description |
 |---|---|---|
-| `current_tip` | int | Current chain head block number |
-| `snapshot_ranges` | string | JSON array: `[{"from": 0, "to": 1000000}]` |
+| `current_tip` | int | Current chain head block number the indexer has ingested |
+| `snapshot_ranges` | string | JSON-encoded array of snapshot descriptors; pass `"[]"` if none |
+
+Each element of `snapshot_ranges` is an object with:
+
+| Field | Type | Description |
+|---|---|---|
+| `start` | int | First block (inclusive) covered by the snapshot |
+| `end` | int | Last block (inclusive) covered by the snapshot |
+| `file` | string | Storage locator the host can fetch (URL, CID, or path) |
+| `sizeBytes` | int | Snapshot size in bytes, used by clients for transfer budgeting |
+| `createdAt` | string | RFC3339 timestamp of snapshot creation (optional) |
 
 ```bash
 curl -s -X POST http://localhost:8090/v1/indexers/03a1b2c3.../heartbeat \
   -H 'Authorization: Bearer 03a1b2c3....20240101T000000Z.abc123...' \
   -H 'Content-Type: application/json' \
-  -d '{"current_tip": 19500000, "snapshot_ranges": "[]"}'
+  -d '{
+    "current_tip": 19500000,
+    "snapshot_ranges": "[{\"start\":18000000,\"end\":19000000,\"file\":\"snap.tar.gz\",\"sizeBytes\":10737418240,\"createdAt\":\"2026-04-21T00:00:00Z\"}]"
+  }'
 ```
 
 ```json
 {"status": "ok"}
 ```
+
+> **Indexer implementation checklist.** The indexer binary must (1) read `heartbeat_interval_seconds` from the registration response and schedule heartbeats at that cadence, (2) generate a fresh Bearer token (`peerID.unixTs.sigHex`) for every call — tokens expire after 60 seconds, (3) send `current_tip` and `snapshot_ranges` as the request body, (4) treat a non-2xx response as a failure to re-register on the next interval rather than silently retrying forever.
 
 ---
 
@@ -312,7 +327,7 @@ POST /v1/hosts/{id}/heartbeat
 Authorization: Bearer <token>
 ```
 
-Updates host liveness timestamp.
+Updates host liveness timestamp. Must be called at least once per `heartbeat_interval_seconds` (returned at registration). The request body is empty — hosts do not report progress, only liveness.
 
 ```bash
 curl -s -X POST http://localhost:8090/v1/hosts/02d4e5f6.../heartbeat \
@@ -324,6 +339,8 @@ curl -s -X POST http://localhost:8090/v1/hosts/02d4e5f6.../heartbeat \
 ```json
 {"status": "ok"}
 ```
+
+> **Host implementation checklist.** The host binary must (1) read `heartbeat_interval_seconds` from the registration response, (2) generate a fresh Bearer token per call (tokens expire after 60 seconds), (3) send an empty JSON body (`{}`) — unlike the indexer heartbeat, no fields are expected, (4) continue heartbeating for as long as it has active subscriptions, otherwise it is dropped from the discovery pool and cannot receive new subscription details.
 
 ---
 
