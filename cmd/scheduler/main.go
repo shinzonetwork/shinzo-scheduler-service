@@ -81,6 +81,15 @@ func run(ctx context.Context, cfg *config.Config, log *zap.SugaredLogger) error 
 
 	defraNode := client.GetNode()
 
+	// Register scheduler collections for P2P replication so multi-scheduler
+	// deployments converge on shared state. No-op when P2P is disabled.
+	if cfg.DefraDB.P2P.Enabled {
+		if err := defraNode.DB.CreateP2PCollections(ctx, schedulerschema.Collections); err != nil {
+			return fmt.Errorf("register P2P collections: %w", err)
+		}
+		log.Infow("P2P collections registered", "count", len(schedulerschema.Collections))
+	}
+
 	// Wire store layer.
 	indexerSt := store.NewIndexerStore(defraNode.DB)
 	hostSt := store.NewHostStore(defraNode.DB)
