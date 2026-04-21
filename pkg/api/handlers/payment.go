@@ -46,7 +46,7 @@ func (h *PaymentHandler) WithFloorPricing(tipPer1k, snapshotPerRange float64) {
 	h.floorSnapshotPerRange = snapshotPerRange
 }
 
-// WithTxVerifier attaches an on-chain verifier to the handler (Phase 3).
+// WithTxVerifier attaches an on-chain verifier to the handler.
 func (h *PaymentHandler) WithTxVerifier(v TxVerifier) {
 	h.txVerifier = v
 }
@@ -116,9 +116,9 @@ func (h *PaymentHandler) Quote(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VerifyPayment handles POST /v1/payments/verify.
-// Phase 1: trust-based — the operator sends the subscription ID + payment ref.
-// Phase 3: will verify the TxHash on ShinzoHub.
+// VerifyPayment handles POST /v1/payments/verify. When TxHash is provided and
+// a TxVerifier is configured, the transaction is verified on-chain. Otherwise
+// activation is trust-based on the supplied payment reference.
 func (h *PaymentHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 	// Only authenticated hosts or operators may call this.
 	token := middleware.APIKeyFromContext(r.Context())
@@ -137,7 +137,6 @@ func (h *PaymentHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phase 3: verify the on-chain transaction when a tx_hash is provided.
 	if req.TxHash != "" && h.txVerifier != nil {
 		if err := h.txVerifier.VerifySubscriptionPayment(r.Context(), req.TxHash, req.SubscriptionID); err != nil {
 			writeError(w, http.StatusPaymentRequired, "tx verification failed: "+err.Error())

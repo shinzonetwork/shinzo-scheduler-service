@@ -10,12 +10,12 @@ type Quote struct {
 	ValidUntil  string  `json:"valid_until"` // RFC3339
 }
 
-// In Phase 1 this is trust-based (operator signs off-chain).
-// Phase 3 will verify a ShinzoHub transaction hash.
+// VerifyPaymentRequest activates a subscription. TxHash is optional: when set and
+// a TxVerifier is configured, the payment is verified on-chain against ShinzoHub;
+// otherwise activation is trust-based on PaymentRef alone.
 type VerifyPaymentRequest struct {
 	SubscriptionID string `json:"subscription_id"`
 	PaymentRef     string `json:"payment_ref"`
 	ExpiresAt      string `json:"expires_at"` // RFC3339; empty = no expiry
-	// Phase 3: ShinzoHub on-chain proof
-	TxHash string `json:"tx_hash,omitempty"`
+	TxHash         string `json:"tx_hash,omitempty"`
 }
